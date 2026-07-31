@@ -2,88 +2,126 @@ package com.github.ndytar.capacity.autoconfigure;
 
 
 import com.github.ndytar.capacity.auth.CapacityAuthManager;
-import com.github.ndytar.capacity.filter.CapacityFilter;
-import com.github.ndytar.capacity.properties.CapacityProperties;
-import com.github.ndytar.capacity.service.JwtService;
-import com.github.ndytar.capacity.service.MacaroonService;
-import com.github.ndytar.capacity.service.TokenRedisService;
+import com.github.ndytar.capacity.auth.Deduiction;
+import com.github.ndytar.capacity.chaine.CapacityFilter;
+import com.github.ndytar.capacity.jwt_macaroons.JwtService;
+import com.github.ndytar.capacity.jwt_macaroons.MacaroonService;
+import com.github.ndytar.capacity.jwt_macaroons.RefreshTokenService;
+import com.github.ndytar.capacity.jwt_macaroons.UuidService;
+import com.github.ndytar.capacity.login.AuthService;
+import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
+import com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
+import com.github.ndytar.capacity.properties.CapacitySecurityPropertie;
+
+import com.github.ndytar.capacity.register.TokenRedisService;
+import com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
+import com.github.ndytar.capacity.services.CapacityUserService;
+import com.github.ndytar.capacity.services.SecurityAuditReporter;
+import com.github.ndytar.capacity.services.SucurityVulnerabilityReport;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+
+import static com.github.ndytar.capacity.autoconfigure.config.CapacitySecurityConfigurer.capacitySecurity;
 
 @AutoConfiguration
 @ConditionalOnClass(SecurityFilterChain.class)
-@EnableConfigurationProperties(CapacityProperties.class)
+@EnableConfigurationProperties({CapacityJwtPropertie.class,
+        CapacityMacaoonPropertie.class,
+CapacitySecurityPropertie.class})
 public class CapacitySecurityAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public CapacityFilter capacityFilter(
             JwtService jwtService,
             MacaroonService macaroonService,
-            CapacityProperties properties) {
+            TokenRedisService tokenRedisService,
+            SecurityAuditReporter auditReporter,
+            RequestMappingHandlerMapping handlerMapping,
+            CapacityJwtPropertie jwtPropertie
+    ) {
 
-        CapacityFilter filter = new CapacityFilter(jwtService, macaroonService);
-        filter.setHEADER(properties.getJwt().getHeaderName());
+        CapacityFilter filter = new CapacityFilter(
+                jwtService,
+                 macaroonService,
+                tokenRedisService,
+                 auditReporter,
+                 handlerMapping,
+                 jwtPropertie
+        );
+       // filter.setHEADER(properties.getJwt().getHeaderName());
         return filter;
     }
     @Bean
     @ConditionalOnMissingBean
-    public JwtService jwtService(TokenRedisService tokenRedisService,
-                                 CapacityProperties properties) {
-        return new JwtService(tokenRedisService, properties);
+    public AuthService authService(CapacityUserService capacityUserService,
+                                  CapacityPolitiqueMappingService politiqueService,
+                                  JwtService jwtService,
+                                  RefreshTokenService refreshTokenService,
+                                  UuidService uuidService,
+                                  SucurityVulnerabilityReport vulnerabilityReport,
+                                  PasswordEncoder encoder,
+                                  CapacityJwtPropertie jwtPropertie,
+                                  CapacityMacaoonPropertie macaoonProperti) {
+        return new AuthService(
+              capacityUserService,
+               politiqueService,
+                jwtService,
+                 refreshTokenService,
+                 uuidService,
+                 vulnerabilityReport,
+                 encoder,
+                jwtPropertie,
+                macaoonProperti
+        );
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public MacaroonService macaroonService(CapacityProperties properties,
-                                           TokenRedisService tokenRedisService) {
-        return new MacaroonService(properties, tokenRedisService);
+    public MacaroonService macaroonService(UuidService uuidService,
+                                           JwtService jwtService,
+                                           TokenRedisService tokenRedisService,
+                                           CapacityMacaoonPropertie macaoonPropertie,
+                                           CapacityJwtPropertie jwtPropertie) {
+        return new MacaroonService(
+                uuidService,
+               jwtService,
+                tokenRedisService,
+                macaoonPropertie,
+                 jwtPropertie
+        );
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public TokenRedisService tokenRedisService(StringRedisTemplate redisTemplate) {
-        return new TokenRedisService(redisTemplate);
+    public TokenRedisService tokenRedisService(StringRedisTemplate redisTemplate,
+                                               CapacityJwtPropertie jwtPropertie) {
+        return new TokenRedisService(redisTemplate, jwtPropertie);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public CapacityAuthManager capacityAuthManager() {
-        return new CapacityAuthManager();
+    public CapacityAuthManager capacityAuthManager(Deduiction deduiction, RequestMappingHandlerMapping handlerMapping) {
+        return new CapacityAuthManager(deduiction, handlerMapping);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public CapacityFilter capacityFilter(
-            JwtService jwtService,
-            MacaroonService macaroonService) {
-        return new CapacityFilter(jwtService, macaroonService);
-    }
 
     @Bean
     @ConditionalOnMissingBean(SecurityFilterChain.class)
     public SecurityFilterChain capacityFilterChain(
-            org.springframework.security.config.annotation.web.builders.HttpSecurity http,
-            CapacityFilter capacityFilter,
-            CapacityAuthManager capacityAuthManager) throws Exception {
+            HttpSecurity http, CapacityAuthManager capacity) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(s -> s
-                        .sessionCreationPolicy(
-                                org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
-                .anonymous(anonymous -> anonymous.disable())
-                .addFilterBefore(
-                        capacityFilter,
-                        org.springframework.security.web.authentication
-                                .UsernamePasswordAuthenticationFilter.class)
+        http.with(capacitySecurity(), Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest()
-                        .access(capacityAuthManager));
+                        .anyRequest().access(capacity));
 
         return http.build();
     }
