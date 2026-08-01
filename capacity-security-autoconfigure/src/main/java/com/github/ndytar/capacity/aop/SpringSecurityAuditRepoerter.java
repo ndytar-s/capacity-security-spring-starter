@@ -4,7 +4,7 @@ import com.github.ndytar.capacity.services.SecurityAuditReporter;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-@Component
+
 public class SpringSecurityAuditRepoerter implements SecurityAuditReporter {
 
     private final ApplicationEventPublisher publisher;

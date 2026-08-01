@@ -19,7 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import java.util.function.Supplier;
 
-@Component
+//@Component
 public class CapacityAuthManager
         implements AuthorizationManager<RequestAuthorizationContext> {
 

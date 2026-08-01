@@ -26,7 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Component
+//@Component
 public class CapacityFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(CapacityFilter.class);

@@ -1,4 +1,4 @@
-package com.github.ndytar.capacity.autoconfigure.config;
+package com.github.ndytar.capacity.config;
 
 import com.github.ndytar.capacity.auth.CapacityAuthManager;
 import org.jspecify.annotations.Nullable;

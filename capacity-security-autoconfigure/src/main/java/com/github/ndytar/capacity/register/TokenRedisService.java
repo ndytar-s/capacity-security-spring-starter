@@ -17,11 +17,8 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-@Service
-public class TokenRedisService {
-    //@Value("${capacity.jwt.secret}")
-   // private String cleSecrete;
 
+public class TokenRedisService {
 
     private StringRedisTemplate redisTemplate;
     private CapacityJwtPropertie jwtPropertie;

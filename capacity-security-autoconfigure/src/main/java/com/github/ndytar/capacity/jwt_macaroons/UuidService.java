@@ -3,12 +3,11 @@ package com.github.ndytar.capacity.jwt_macaroons;
 import com.github.ndytar.capacity.register.TokenRedisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.UUID;
 
-@Service
+
 public class UuidService {
 
     private static final Logger log = LoggerFactory

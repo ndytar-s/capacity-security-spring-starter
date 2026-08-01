@@ -1,4 +1,4 @@
-package com.github.ndytar.capacity.login;
+package com.github.ndytar.capacity.jwt_macaroons;
 
 
 public class LoginRequest {

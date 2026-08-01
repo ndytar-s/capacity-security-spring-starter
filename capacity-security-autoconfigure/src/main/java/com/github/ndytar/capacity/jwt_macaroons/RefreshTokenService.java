@@ -17,7 +17,6 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
 
-@Service
 public class RefreshTokenService {
 
     private static final Logger log = LoggerFactory.getLogger(RefreshTokenService.class);
@@ -27,14 +26,6 @@ public class RefreshTokenService {
     private TokenRedisService tokenRedisService;
     private CapacityJwtPropertie jwtPropertie;
     private CapacityMacaoonPropertie macaoonPropertie;
-
- //   @Value("${capacity.jwt.secret}")
-  //  private String cleSecrete;
-    //@Value("${capacity.refresh.duree:604800000}")
-   // private long duree;
-  //  @Value("${capacity.refresh.redis-enabled:false}")
-  //  private boolean redisEnabled;
-
 
     public RefreshTokenService(TokenRedisService tokenRedisService, UuidService uuidService,
                                StringRedisTemplate redisTemplate,

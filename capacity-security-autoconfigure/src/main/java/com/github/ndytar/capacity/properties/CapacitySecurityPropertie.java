@@ -3,7 +3,7 @@ package com.github.ndytar.capacity.properties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@Component
+
 @ConfigurationProperties(prefix = "capacity.security")
 public class CapacitySecurityPropertie {
    private String allowedapi;
@@ -11,7 +11,9 @@ public class CapacitySecurityPropertie {
    public String getAllowedapi() {
         return allowedapi;
     }
-    public void setAllowedapi(String allowedapi) {}
+    public void setAllowedapi(String allowedapi) {
+       this.allowedapi = allowedapi;
+    }
 
     public String getMtls() {
         return mtls;

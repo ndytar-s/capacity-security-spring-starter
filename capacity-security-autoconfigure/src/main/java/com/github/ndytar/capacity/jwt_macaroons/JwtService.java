@@ -1,6 +1,5 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-//package  com.ndytar.reveseEngineering.register.*;
 import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
 import com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
 import com.github.ndytar.capacity.register.TokenRedisService;
@@ -17,7 +16,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.Set;
 
-@Service
+
 public class JwtService {
 
     private static final Logger log = LoggerFactory

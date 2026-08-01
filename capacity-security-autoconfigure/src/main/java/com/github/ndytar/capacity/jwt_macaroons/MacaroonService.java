@@ -18,26 +18,11 @@
  import java.util.Set;
  import java.util.UUID;
 
-@Service
+
 public class MacaroonService {
 
     private static final Logger log = LoggerFactory.getLogger(MacaroonService.class);
 
-  //  @Value("${capacity.macaroon.secret}")
-   // private String cleSecrete;
-
-
-   // @Value("${capacity.macaroon.location}")
-  //  private String location;
-
-   // @Value("${capacity.macaroon.redis.enabled}")
-   // private boolean redisEnabled;
-
-    //@Value("${capacity.macaroon.strict}")
-   // private boolean strict;
-
-  //  @Value("${capacity.jwt.duree:900000}")
-    //private long dureeMs;
 
     private TokenRedisService tokenRedisService;
     private JwtService jwtService;

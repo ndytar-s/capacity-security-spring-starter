@@ -18,12 +18,10 @@ import com.github.ndytar.capacity.services.SucurityVulnerabilityReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Service
 public class AuthService implements IAuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);

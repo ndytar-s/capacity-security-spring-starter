@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-//@Component
+
 public class DynamicPoliticMappingService implements CapacityPolitiqueMappingService {
 
     // Une fonction que le développeur fournira pour charger ses propres données brutes

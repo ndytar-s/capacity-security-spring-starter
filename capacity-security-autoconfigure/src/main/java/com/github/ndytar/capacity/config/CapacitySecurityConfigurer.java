@@ -1,4 +1,4 @@
-package com.github.ndytar.capacity.autoconfigure.config;
+package com.github.ndytar.capacity.config;
 
 import com.github.ndytar.capacity.auth.CapacityAuthManager;
 import com.github.ndytar.capacity.chaine.CapacityFilter;
@@ -14,7 +14,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@SpringBootApplication(exclude = { UserDetailsServiceAutoConfiguration.class })// optionnel
 public class CapacitySecurityConfigurer
         extends AbstractHttpConfigurer<CapacitySecurityConfigurer, HttpSecurity> {
 

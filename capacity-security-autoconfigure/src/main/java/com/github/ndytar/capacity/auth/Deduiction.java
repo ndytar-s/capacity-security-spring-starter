@@ -10,7 +10,7 @@ import org.springframework.web.method.HandlerMethod;
 
 import java.util.Map;
 
-@Service
+
 public class Deduiction {
     Logger log = LoggerFactory.getLogger(Deduiction.class);
     // déduire le scope depuis @RequiresCapacity ou @RequestMapping
