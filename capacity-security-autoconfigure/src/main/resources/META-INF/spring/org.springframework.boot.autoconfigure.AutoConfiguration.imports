@@ -1,0 +1,4 @@
+﻿com.github.ndytar.capacity.autoconfigure.CapacityAopAutoConfiguration
+com.github.ndytar.capacity.autoconfigure.CapacitySecurityAutoConfiguration
+com.github.ndytar.capacity.config.CapacityWebSecurityAutoConfiguration
+com.github.ndytar.capacity.config.PasswordEncodConfig
