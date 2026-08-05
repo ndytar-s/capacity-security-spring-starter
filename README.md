@@ -158,13 +158,30 @@ Sans ces deux beans, le démarrage échoue avec une erreur explicite (`NoSuchBea
 
 ## Points d'extension obligatoires
 
-Ces interfaces n'ont **aucune implémentation par défaut**. Le démarrage échoue si elles ne sont pas fournies.
+Ces interfaces n'ont **aucune implémentation par défaut fournie par le starter**. Sans un bean pour chacune d'elles, l'application ne démarre pas (`NoSuchBeanDefinitionException`). C'est volontaire : ces deux composants dépendent entièrement du modèle de données propre à l'application consommatrice, le starter ne peut donc pas deviner une implémentation par défaut sensée.
 
 ### `CapacityUserService`
 
 ```java
 public interface CapacityUserService {
     Optional<CapacityUser> findByUsername(String username);
+}
+```
+
+Exemple d'implémentation, à fournir par le développeur dans sa propre application :
+
+```java
+@Configuration
+public class CapacityUserConfig {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Bean
+    public CapacityUserService capacityUserService() {
+        return username -> userRepository.findByUsername(username)
+                .map(u -> new CapacityUser(u.getUsername(), u.getPassword(), u.getRoles()));
+    }
 }
 ```
 
@@ -176,7 +193,34 @@ public interface CapacityPolitiqueMappingService {
 }
 ```
 
-Une implémentation générique `DynamicPoliticMappingService` est fournie par le starter ; elle prend en paramètre une fonction de résolution des données (`Function<String, Collection<? extends MappingScopeActions>>`) à définir par le développeur, en s'appuyant sur l'interface `MappingScopeActions` :
+Deux approches sont possibles pour la fournir, au choix.
+
+**Option A — implémentation directe (la plus simple)**
+
+Le développeur implémente l'interface lui-même, sans passer par une classe intermédiaire du starter :
+
+```java
+@Service
+public class PolitiqueService implements CapacityPolitiqueMappingService {
+
+    @Autowired
+    private PolitiqueRepository politiqueRepository;
+
+    @Override
+    public Map<String, Set<String>> getPolitiqueForRole(String role) {
+        return politiqueRepository.findByRole(role)
+                .stream()
+                .collect(Collectors.toMap(
+                        Politique::getScope,
+                        Politique::getActions
+                ));
+    }
+}
+```
+
+**Option B — via `DynamicPoliticMappingService` (fournie par le starter)**
+
+Utile si l'entité métier existe déjà et peut directement implémenter le contrat `MappingScopeActions`, sans passer par un `Stream`/`Collectors.toMap` manuel :
 
 ```java
 public interface MappingScopeActions {
@@ -184,6 +228,62 @@ public interface MappingScopeActions {
     Set<String> getActionsSet();
 }
 ```
+
+```java
+@Entity
+@Table(name = "politique")
+public class Politique implements MappingScopeActions {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String role;
+
+    @Column(nullable = false)
+    private String scope;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "politique_action", joinColumns = @JoinColumn(name = "politique_id"))
+    @Column(name = "action")
+    private Set<String> actions = new HashSet<>();
+
+    public Politique() {}
+
+    public Politique(String role, String scope, Set<String> actions) {
+        this.role = role;
+        this.scope = scope;
+        this.actions = actions;
+    }
+
+    public String getRole()    { return role; }
+    public String getScope()   { return scope; }
+    public Set<String> getActions() { return actions; }
+
+    @Override
+    public String getScopeName() { return getScope(); }
+
+    @Override
+    public Set<String> getActionsSet() { return getActions(); }
+}
+```
+
+```java
+@Configuration
+public class ConfigPoliticMapping {
+
+    @Autowired
+    private PolitiqueRepository politiqueRepository;
+
+    @Bean
+    public CapacityPolitiqueMappingService capacityPolitiqueService() {
+        return new DynamicPoliticMappingService(role -> politiqueRepository.findByRole(role));
+    }
+}
+```
+
+Dans les deux cas, le résultat attendu est le même : pour un rôle donné, une `Map<String scope, Set<String> actions>` décrivant les capacités associées.
 
 ---
 
@@ -276,4 +376,4 @@ La révocation nécessite `capacity.macaroon.redis=true` (voir [Limitations conn
 
 ## Licence
 
-*(à compléter selon la licence choisie pour le dépôt)*
+Distribué sous licence [Apache 2.0](LICENSE).
