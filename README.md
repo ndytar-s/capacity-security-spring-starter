@@ -216,7 +216,7 @@ Encodeur par défaut fourni via `PasswordEncoderFactories.createDelegatingPasswo
 | Annotation | Portée | Rôle |
 |---|---|---|
 | `@RequiresCapacity(actions = {...})` | Méthode de contrôleur | Définit explicitement l'action requise, sinon déduite du verbe HTTP |
-| `@AllowedIp("...")` | Méthode de contrôleur | Restreint l'accès à un pattern d'adresse IP |
+| `@AllowedIp` | Méthode de contrôleur | Restreint l'accès à un pattern d'adresse IP |
 | `@OneTimeAccess` | Méthode de contrôleur | Exige un token à usage unique |
 | `@CapacityOauth` | Méthode de contrôleur | Déclenche `CapacityOauthAspect` pour l'authentification tierce |
 
