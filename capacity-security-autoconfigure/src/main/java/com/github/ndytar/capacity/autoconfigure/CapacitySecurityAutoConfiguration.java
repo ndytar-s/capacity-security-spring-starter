@@ -2,6 +2,7 @@ package com.github.ndytar.capacity.autoconfigure;
 import com.github.ndytar.capacity.aop.*;
 import com.github.ndytar.capacity.auth.CapacityAuthManager;
 import com.github.ndytar.capacity.auth.Deduiction;
+import com.github.ndytar.capacity.auth.IpAuthorizationChecker;
 import com.github.ndytar.capacity.chaine.CapacityFilter;
 import com.github.ndytar.capacity.jwt_macaroons.JwtService;
 import com.github.ndytar.capacity.jwt_macaroons.MacaroonService;
@@ -107,6 +108,11 @@ public class CapacitySecurityAutoConfiguration {
                                  CapacityJwtPropertie jwtPropertie,
                                  CapacityMacaoonPropertie redisPropertie) {
         return new JwtService(tokenRedisService, uuidService, jwtPropertie, redisPropertie);
+    }
+    @Bean
+    @ConditionalOnMissingBean
+    public IpAuthorizationChecker ipAuthorizationChecker(CapacitySecurityPropertie securityProperties){
+        return new IpAuthorizationChecker(securityProperties);
     }
     @Bean
     @ConditionalOnMissingBean

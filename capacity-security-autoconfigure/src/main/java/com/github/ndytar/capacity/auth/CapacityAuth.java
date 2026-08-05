@@ -13,12 +13,11 @@ public class CapacityAuth extends AbstractAuthenticationToken {
     private final String      resourceScope;
     private final Set<String> actions;
     private final boolean     oneTime;
-    private final String      allowedIp;
     private final String      uuid;
 
     public CapacityAuth(String token, String resourceScope,
                         Set<String> actions, boolean oneTime,
-                        String allowedIp, String uuid) {
+                        String uuid) {
         super(actions.stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList()));
@@ -26,7 +25,6 @@ public class CapacityAuth extends AbstractAuthenticationToken {
         this.resourceScope = resourceScope;
         this.actions       = actions;
         this.oneTime       = oneTime;
-        this.allowedIp     = allowedIp;
         this.uuid           = uuid;
         setAuthenticated(true);
     }
@@ -34,7 +32,6 @@ public class CapacityAuth extends AbstractAuthenticationToken {
     public String      getResourceScope() { return resourceScope; }
     public Set<String> getActions()       { return actions; }
     public boolean     isOneTime()        { return oneTime; }
-    public String      getAllowedIp()     { return allowedIp; }
     public String      getUuid()           { return uuid; }
 
     @Override

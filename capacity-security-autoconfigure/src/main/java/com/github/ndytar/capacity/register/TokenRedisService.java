@@ -9,7 +9,6 @@ import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.time.Duration;
@@ -50,8 +49,7 @@ public class TokenRedisService {
             String cletoken = PREFIX_JWT + uuid;
             String cleSet = PREFIX_MACAROON + uuid;
             redisTemplate.opsForSet().add(cleSet, newMacaroon);
-            log.info("macaroon stoke uuidmac : {}",uuid);
-            
+
             Long timTokenMs = redisTemplate.getExpire(cletoken, TimeUnit.MILLISECONDS);
             if(timTokenMs != null && timTokenMs > 0 ) {
                 redisTemplate.expire(cleSet, Duration.ofMillis(timTokenMs));
@@ -65,7 +63,6 @@ public class TokenRedisService {
                     deviceId,
                     dureeMs,
                     TimeUnit.MILLISECONDS);
-            log.info("UUID de jwt stocké uuid: {} username {} deviceId {}", uuid, deviceId);
         }
     }
     // récupérer username depuis redis; a voire si on accepe un token a la place de uuid de user

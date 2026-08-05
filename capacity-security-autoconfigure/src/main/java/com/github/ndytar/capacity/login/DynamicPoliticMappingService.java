@@ -23,7 +23,6 @@ public class DynamicPoliticMappingService implements CapacityPolitiqueMappingSer
 
     @Override
     public Map<String, Set<String>> getPolitiqueForRole(String role) {
-        // La logique complexe de transformation reste chez vous, masquée pour lui
         Collection<? extends MappingScopeActions> data = datasourceProvider.apply(role);
         if (data == null) {
             return Collections.emptyMap();

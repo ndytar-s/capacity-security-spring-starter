@@ -6,12 +6,7 @@
  import com.github.nitram509.jmacaroons.Macaroon;
  import com.github.nitram509.jmacaroons.MacaroonsBuilder;
  import com.github.nitram509.jmacaroons.MacaroonsVerifier;
-
  import io.jsonwebtoken.Claims;
- import org.slf4j.Logger;
- import org.slf4j.LoggerFactory;
- import org.springframework.stereotype.Service;
-
  import java.time.LocalDate;
  import java.util.HashSet;
  import java.util.List;
@@ -21,7 +16,6 @@
 
 public class MacaroonService {
 
-    private static final Logger log = LoggerFactory.getLogger(MacaroonService.class);
 
 
     private TokenRedisService tokenRedisService;
@@ -45,20 +39,16 @@ public class MacaroonService {
      * @param ressource
      * @param actions
      * @param oneTime
-     * @param allowedIp
+
      * @return
      * Creer = Attenuer une capacité sous form d'un macaroon
      */
-    public Macaroon creer(String jwtToken, String ressource, Set<String> actions, boolean oneTime,  String allowedIp) {
+    public Macaroon creer(String jwtToken, String ressource, Set<String> actions, boolean oneTime) {
     String idMac = UUID.randomUUID().toString();
 
     Macaroon macaroon = MacaroonsBuilder.create(
             macaoonPropertie.getLocation(), macaoonPropertie.getKeySecret(), idMac);
 
-
-
-        log.debug("Création macaroon - ressource: {}, actions: {}, oneTime: {}, allowedIp: {}",
-                ressource, actions, oneTime, allowedIp);
 
         if (jwtToken == null || jwtToken.isBlank())
             throw ApiExceptions.jwtAbsent();
@@ -70,7 +60,6 @@ public class MacaroonService {
 
 
         String scope = claims.get("scope", String.class);
-        log.debug("Scope du JWT: {}", scope);
 
             if(!scope.matches(ressource
                 .replace("/**", "(/.*)?")
@@ -103,9 +92,7 @@ public class MacaroonService {
      if(oneTime){
          builder.add_first_party_caveat("oneTime=true");
      }
-     if (allowedIp != null && !allowedIp.equals("null")) {
-         builder.add_first_party_caveat("allowedIp=" + allowedIp);
-     }
+
         // extraire uuid depuis JWT et injecter dans Macaroon
         String uuid = claims.get("uuid", String.class);
         if (uuid != null) {
@@ -145,11 +132,9 @@ public class MacaroonService {
 
 
   public boolean verifier(Macaroon macaroon) {
-        log.info("Verifiaction macron {}",macaroon.identifier);
 
         if (macaoonPropertie.isRedis()) {
             if (!tokenRedisService.isMacaroon(macaroon)) {
-                log.info("Macaroon:{} does not exist", macaroon.identifier);
                 return false;
             }
         }
@@ -160,21 +145,19 @@ public class MacaroonService {
             if (c.startsWith("expire=")) {
                 LocalDate expiration = LocalDate.parse(
                         c.substring("expire=".length()));
-                log.info(" expiration: {}", !LocalDate.now().isAfter(expiration));
                 return !LocalDate.now().isAfter(expiration);
             }
             // ressource, action, ip, one_time
             // satisfaits ici car vérifiés dans CapacityAuthManager
             if (c.startsWith("ressource=")) return true;
             if (c.startsWith("actions="))    return true;
-            if (c.startsWith("allowedIp=")) return true;
             if (c.startsWith("oneTime=true")) return true;
             if (c.startsWith("uuid")) return true;
 
             return !macaoonPropertie.isStric();
         });
       boolean valide = verifier.isValid(macaoonPropertie.getKeySecret());
-      log.info("Macaroon valide : {}", valide);
+
       return valide;
     }
 

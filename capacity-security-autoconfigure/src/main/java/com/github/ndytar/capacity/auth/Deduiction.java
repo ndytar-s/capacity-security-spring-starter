@@ -2,9 +2,6 @@ package com.github.ndytar.capacity.auth;
 
 import com.github.ndytar.capacity.annotation.RequiresCapacity;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.method.HandlerMethod;
 
@@ -12,8 +9,6 @@ import java.util.Map;
 
 
 public class Deduiction {
-    Logger log = LoggerFactory.getLogger(Deduiction.class);
-    // déduire le scope depuis @RequiresCapacity ou @RequestMapping
 
     private static final Map<String, String> HTTP_ACTION = Map.of(
             "GET",    "READ",
@@ -31,7 +26,6 @@ public class Deduiction {
                 .getAnnotation(RequestMapping.class);
 
         if (classMapping != null && classMapping.value().length > 0) {
-            log.info("Deduire scope {}", classMapping.value()[0]+"/**");
             return classMapping.value()[0] + "/**";
         }
 
@@ -72,9 +66,6 @@ public class Deduiction {
                         || scopeRequis.startsWith(
                         scopeToken.replace("/**", "")
                 );
-
-        log.info("urlDansToken: {}, tokenCouvreRequis: {}",
-                urlDansToken, tokenCouvreRequis);
 
         return urlDansToken && tokenCouvreRequis;
     }

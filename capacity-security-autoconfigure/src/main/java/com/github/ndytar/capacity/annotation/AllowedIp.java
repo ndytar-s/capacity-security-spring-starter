@@ -8,6 +8,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AllowedIp {
-    // Permet d'écrire @AllowedIp("192.168.1.5")
-    String value() ;
+
 }

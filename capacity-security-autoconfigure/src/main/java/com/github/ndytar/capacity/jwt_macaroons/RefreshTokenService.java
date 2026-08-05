@@ -7,10 +7,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Base64;
@@ -19,7 +17,6 @@ import java.util.Optional;
 
 public class RefreshTokenService {
 
-    private static final Logger log = LoggerFactory.getLogger(RefreshTokenService.class);
 
     private StringRedisTemplate redisTemplate;
     private UuidService uuidService;
@@ -87,7 +84,6 @@ public class RefreshTokenService {
                 .parseSignedClaims(token)
                 .getPayload();
         } catch (JwtException e) {
-            log.warn("Refresh token JWT invalide : {}", e.getMessage());
             return null;
         }
     }

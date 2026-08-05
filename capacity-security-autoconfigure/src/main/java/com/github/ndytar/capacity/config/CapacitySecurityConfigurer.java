@@ -3,8 +3,6 @@ package com.github.ndytar.capacity.config;
 import com.github.ndytar.capacity.auth.CapacityAuthManager;
 import com.github.ndytar.capacity.chaine.CapacityFilter;
 import com.github.ndytar.capacity.exception.CapacityAccessDeniedHandler;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;

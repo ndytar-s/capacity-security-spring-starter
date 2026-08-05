@@ -1,17 +1,12 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
 import com.github.ndytar.capacity.register.TokenRedisService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.UUID;
 
 
 public class UuidService {
-
-    private static final Logger log = LoggerFactory
-            .getLogger(UuidService.class);
 
     private TokenRedisService tokenRedisService;
 
@@ -34,7 +29,6 @@ public class UuidService {
     public String generer(String prefix, String deviceId, long DUREE_MS) {
         String uuid = UUID.randomUUID().toString();
         tokenRedisService.stocker(prefix, uuid, deviceId, DUREE_MS);
-        log.info("UUID généré : {} pour {} sur {}", uuid, deviceId);
         return uuid;
     }
 

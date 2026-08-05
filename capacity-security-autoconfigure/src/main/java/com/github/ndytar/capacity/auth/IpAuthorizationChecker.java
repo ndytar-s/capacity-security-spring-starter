@@ -1,15 +1,13 @@
-package com.ndytar.reveseEngineering.auth;
+package com.github.ndytar.capacity.auth;
 
-import com.ndytar.reveseEngineering.annotation.AllowedIp;
-import com.ndytar.reveseEngineering.properties.CapacitySecurityPropertie;
+import com.github.ndytar.capacity.annotation.AllowedIp;
+import com.github.ndytar.capacity.properties.CapacitySecurityPropertie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.security.autoconfigure.SecurityProperties;
-import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 
-@Component
+
 public class IpAuthorizationChecker {
 
     private static final Logger log = LoggerFactory.getLogger(IpAuthorizationChecker.class);

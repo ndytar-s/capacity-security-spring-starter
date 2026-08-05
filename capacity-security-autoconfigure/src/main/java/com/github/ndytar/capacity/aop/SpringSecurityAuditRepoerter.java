@@ -2,7 +2,6 @@ package com.github.ndytar.capacity.aop;
 
 import com.github.ndytar.capacity.services.SecurityAuditReporter;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
 
 
 public class SpringSecurityAuditRepoerter implements SecurityAuditReporter {

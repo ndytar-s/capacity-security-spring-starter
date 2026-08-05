@@ -15,8 +15,7 @@ import com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
 import com.github.ndytar.capacity.services.CapacityUserService;
 import com.github.ndytar.capacity.services.IAuthService;
 import com.github.ndytar.capacity.services.SucurityVulnerabilityReport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.*;
@@ -24,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class AuthService implements IAuthService {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private CapacityUserService capacityUserService;
     private CapacityPolitiqueMappingService politiqueService;
@@ -98,7 +96,6 @@ public class AuthService implements IAuthService {
                 });
 
 
-        log.info("Connexion : {} sur appareil : {}", username, deviceId);
         return genererTokenResponse(user, deviceId);
     }
     // refresh
@@ -131,9 +128,8 @@ public class AuthService implements IAuthService {
             politique.forEach((scope, actions) -> {
                 if (macaoonPropertie.isRedis())
                     uuid.set(uuidService.generer(PREFIX_JWT, deviceId, jwtPropertie.getDuration()));
-                String token = jwtService.generer(scope, actions, false, null, null, uuid.get());
+                String token = jwtService.generer(scope, actions, false, null,  uuid.get());
                 accessTokens.put(scope, token);
-                log.info("Token généré : scope={}, uuid={}", scope, uuid);
             });
 
 
