@@ -1,17 +1,22 @@
-package com.ndytar.reveseEngineering.config;
+package com.github.ndytar.capacity.config;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-@Configuration
-public class CapacityAuthenticationEntryPoint {
-    @Bean(name = "capacityAuthEntryPoint")
-    public AuthenticationEntryPoint capacityAuthenticationEntryPoint() {
-        return (request, response, exception) -> {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write(exception.getMessage());
-        };
+import java.io.IOException;
+
+public class CapacityAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    @Override
+    public void commence(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException exception)
+            throws IOException {
+
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.getWriter().write(exception.getMessage());
     }
 }

@@ -2,6 +2,7 @@ package com.github.ndytar.capacity.auth;
 
 import com.github.ndytar.capacity.annotation.OneTimeAccess;
 import com.github.ndytar.capacity.exception.CapacityDeniedException;
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
@@ -36,7 +37,13 @@ public class CapacityAuthManager
         assert context != null;
         String path = context.getRequest().getRequestURI();
 
-
+        // === INTERCEPTER LE FORWARD D'ERREUR ===
+        // Quand Spring forward vers /error (404, exception...), on autorise
+        // pour laisser le BasicErrorController retourner la VRAIE erreur.
+        HttpServletRequest request = context.getRequest();
+        if (request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI) != null) {
+            return new AuthorizationDecision(true);
+        }
         if (!(auth instanceof CapacityAuth capacityAuth)) {
 
             throw new CapacityDeniedException("Access denied: instance not capacity");
@@ -46,7 +53,6 @@ public class CapacityAuthManager
             if (capacityAuth.getActions().contains("*")) {
                 return new AuthorizationDecision(true);
             }
-        HttpServletRequest request = context.getRequest();
 
         try {
             // récupérer le handler de la requête
@@ -67,8 +73,8 @@ public class CapacityAuthManager
             }
 
             // 2. déduire le scope requis
-            String scopeRequis = deduiction.deduireScope(handler);
 
+            String scopeRequis = deduiction.deduireScope(handler, request);
             // 3. vérifier que le token couvre le scope
             if (!deduiction.scopeCouvre(capacityAuth.getResourceScope(),
                     request.getRequestURI(), scopeRequis)) {

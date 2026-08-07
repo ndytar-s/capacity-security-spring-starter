@@ -19,10 +19,10 @@ public final class ApiExceptions {
     }
 
     public static ResponseStatusException jwtInvalide() {
-        log.warn("Token JWT not valide or expired");
-        return new ResponseStatusException(
+        //log.warn("Token JWT not valide or expired");
+        return new  ResponseStatusException(
                 HttpStatus.UNAUTHORIZED,
-                "Token JWT not valide or expired"
+                "Token / Maccaroon not valide or expired"
         );
     }
 

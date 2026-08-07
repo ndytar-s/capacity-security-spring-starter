@@ -1,11 +1,9 @@
 package com.github.ndytar.capacity.chaine;
 
 import com.github.ndytar.capacity.auth.CapacityAuth;
-import com.github.ndytar.capacity.jwt_macaroons.ApiExceptions;
-import com.github.ndytar.capacity.jwt_macaroons.JwtService;
+import com.github.ndytar.capacity.jwt_macaroons.ExtractionToken;
 import com.github.ndytar.capacity.jwt_macaroons.MacaroonService;
 import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
-import com.github.ndytar.capacity.register.TokenRedisService;
 import com.github.ndytar.capacity.services.SecurityAuditReporter;
 import com.github.nitram509.jmacaroons.CaveatPacket;
 import com.github.nitram509.jmacaroons.Macaroon;
@@ -14,8 +12,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -23,14 +27,16 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-
+@Component
 public class CapacityFilter extends OncePerRequestFilter {
+    private final AuthenticationEntryPoint authenticationEntryPoint;
+    private static final Logger log = LoggerFactory.getLogger(CapacityFilter.class);
 
-    private JwtService jwtService;
-    private MacaroonService macaroonService;
-    private TokenRedisService tokenRedisService;
-    private CapacityJwtPropertie jwtPropertie;
+private final ExtractionToken extractionToken;
+    private final MacaroonService macaroonService;
+    private final CapacityJwtPropertie jwtPropertie;
    SecurityAuditReporter auditReporter;
     private RequestMappingHandlerMapping handlerMapping;
 
@@ -39,15 +45,16 @@ public class CapacityFilter extends OncePerRequestFilter {
     private  String audiUsername;
     private  String audiPassword;
 
-    public CapacityFilter(JwtService jwtService,
+    public CapacityFilter(
+            AuthenticationEntryPoint authenticationEntryPoint,
+                          ExtractionToken extractionToken,
                           MacaroonService macaroonService,
-                          TokenRedisService tokenRedisService,
                           SecurityAuditReporter auditReporter,
                           RequestMappingHandlerMapping handlerMapping,
                           CapacityJwtPropertie jwtPropertie) {
-        this.jwtService = jwtService;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.extractionToken = extractionToken;
         this.macaroonService = macaroonService;
-        this.tokenRedisService = tokenRedisService;
         this.auditReporter = auditReporter;
         this.handlerMapping = handlerMapping;
         this.jwtPropertie = jwtPropertie;
@@ -56,15 +63,17 @@ public class CapacityFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(
             HttpServletRequest  request,
-            HttpServletResponse response,
+           HttpServletResponse response,
             FilterChain         chain
     ) throws ServletException, IOException {
 
         try {
             String token = request.getHeader(jwtPropertie.getHeadername());
 
-            if (token != null) {
-                Claims claims = jwtService.extraireSiValide(token);
+            if (token != null && isJwt(token)) {
+                log.info("Option Token");
+
+                Claims claims = extractionToken.extractClaims(token);
 
                 if (claims != null) {
                     // extraire scope
@@ -81,85 +90,92 @@ public class CapacityFilter extends OncePerRequestFilter {
                     boolean oneTime = Boolean.TRUE.equals(
                             claims.get("one_time", Boolean.class));
 
-
+                    // extraire uuid
                     String uuid = claims.get("uuid", String.class);
 
                     String deviceId = claims.get("deviceId", String.class);
                     audiUsername = deviceId;
+
+                    log.info("JWT valide, scope : {}, actions : {}, uuid : {}",
+                            scope, actions, uuid);
+
                     injecterAuth(token, scope, actions, oneTime, uuid);
 
 
 
                 } else {
-                    // essayer Macaroon
-                    essayerMacaroon(token, request);
+                    throw new BadCredentialsException("Token invalid or expired ");
+
                 }
 
+
             } else {
-                ApiExceptions.jwtInvalide();
+                essayerMacaroon(token, request,response);
             }
+
 
             chain.doFilter(request, response);
 
-        } finally {
+        }
+        catch (AuthenticationException  e){
             SecurityContextHolder.clearContext();
+
+            authenticationEntryPoint.commence(
+                    request,
+                    response,
+                    e
+            );
         }
     }
 
-private void essayerMacaroon(String token, HttpServletRequest request) {
+private void essayerMacaroon(String token, HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
     try {
+        log.info("Option Macaroon");
         // si c'est un JWT, ne pas essayer comme Macaroon
-        if (isJwt(token)) {
-            ApiExceptions.jwtInvalide();
-            return;
-        }
-        Macaroon  macaroon = macaroonService.deserialiser(token);
-
-        // vérifier que c'est bien un Macaroon
-        // en vérifiant que identifier n'est pas null
-        if (macaroon.identifier == null) {
-
-        ApiExceptions.jwtInvalide();
-        return;
-        }
+        if (!isJwt(token ) && token != null) {
 
 
-        String ressourceDemandee = request.getRequestURI();
-        if (macaroonService.verifier(macaroon)) {
-            String      scope     = extraireScopeMacaroon(macaroon);
-            auditScop =  scope;
-            Set<String> actions = extraireActionsMacaroon(macaroon);
-            auditActions = (List<String>) actions;
-            boolean oneTime = extraireOneTimeMacaroon(macaroon);
+            Macaroon macaroon = macaroonService.deserialiser(token);
 
-
-            String uuid = extraireUuidMacaroon(macaroon);
-
-            //revoquer apres 1er usage
-            if (oneTime){
-                macaroonService.revokerMac(macaroon);
+            // vérifier que c'est bien un Macaroon
+            // en vérifiant que identifier n'est pas null
+            if (macaroon.identifier == null) {
+                throw new BadCredentialsException("Macaroon invalid");
             }
 
 
-            injecterAuth(token, scope, actions, oneTime, uuid);
-        } else {
-            ApiExceptions.jwtInvalide();
-        }
-    } catch (IllegalArgumentException e) {
-        e.printStackTrace();
+            String ressourceDemandee = request.getRequestURI();
+            if (macaroonService.verifier(macaroon)) {
+                log.warn("Macaroon invalid or expired");
+                throw new BadCredentialsException("Macaroon invalid or expired");
+            }
+            String scope = extraireScopeMacaroon(macaroon);
+            auditScop = scope;
+            Set<String> actions = extraireActionsMacaroon(macaroon);
+            auditActions = actions.stream().collect(Collectors.toList());
+            boolean oneTime = extraireOneTimeMacaroon(macaroon);
 
-    } catch (Exception e) {e.getStackTrace();    }
+            String uuid =  extractionToken.extractUuidMac(macaroon);
+            //revoquer apres 1er usage
+            if (oneTime) {
+                macaroonService.revokeMacaroon(macaroon);
+            }
+
+            log.info("Macaroon valide, ressourceDemandee : {}, scopMacaroon:{} ", ressourceDemandee, scope);
+            log.info("scope: {}, action: {}, oneTime: {}, uuid: {}", scope, actions, oneTime, uuid);
+            injecterAuth(token, scope, actions, oneTime, uuid);
+        }
+    } catch (AuthenticationException ex) {
+
+        SecurityContextHolder.clearContext();
+
+        throw new BadCredentialsException("Macaroon invalid or expired");
+
+    }
 }
 
     // Nouvelle méthode extraction uuid Macaroon
-    private String extraireUuidMacaroon(Macaroon macaroon) {
-        for (CaveatPacket caveat : macaroon.caveatPackets) {
-            String c = caveat.getValueAsText().replace(" ", "");
-            if (c.startsWith("uuid="))
-                return c.substring("uuid=".length());
-        }
-        return null;
-    }
+
     // extraire le scope depuis le caveat "ressource="
     private String extraireScopeMacaroon(Macaroon macaroon) {
         for (CaveatPacket caveat : macaroon.caveatPackets) {
@@ -176,7 +192,7 @@ private void essayerMacaroon(String token, HttpServletRequest request) {
         for (CaveatPacket caveat : macaroon.caveatPackets) {
             String c = caveat.getValueAsText().replace(" ", "");
             if (c.startsWith("actions=")) {
-                actions.add(c.substring("actions=".length()));
+                actions.add(c.substring("actions=".length()).toUpperCase());
             }
         }
 
@@ -198,7 +214,8 @@ private void essayerMacaroon(String token, HttpServletRequest request) {
 
 
     private void injecterAuth(String token, String scope,
-                              Set<String> actions, boolean oneTime, String uuid) {
+                              Set<String> actions, boolean oneTime,
+                               String uuid) {
         CapacityAuth auth = new CapacityAuth(
                 token, scope, actions, oneTime, uuid);
         SecurityContext ctx = SecurityContextHolder.createEmptyContext();
@@ -208,6 +225,8 @@ private void essayerMacaroon(String token, HttpServletRequest request) {
     }
     private boolean isJwt(String token) {
         // un JWT a toujours 3 parties séparées par des points
-        return token.split("\\.").length == 3;
+       if (token != null && !token.isEmpty())
+           return token.split("\\.").length == 3;
+       return false;
     }
 }

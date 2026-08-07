@@ -1,51 +1,26 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-import com.github.ndytar.capacity.register.TokenRedisService;
+import com.github.ndytar.capacity.services.RegistrationTokenService;
+import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 import java.util.UUID;
 
-
+@Service
 public class UuidService {
+    private final RegistrationTokenService registrationToken;
 
-    private TokenRedisService tokenRedisService;
-
-    public UuidService(TokenRedisService tokenRedisService) {
-        this.tokenRedisService = tokenRedisService;
+    public UuidService( RegistrationTokenService registrationToken) {
+        this.registrationToken = registrationToken;
     }
-
-    /***
-     *
-     * @param deviceId
-     * @param DUREE_MS
-     * @return
-     *
-     * Pour chaque nouveau tkone on a besoin d'un UUID dans le cas où "Redise" est activé.
-     * On stocke le UUID, le nom utilisateur et l'identifiant l'appareil.
-     * UUID sera utilisé pour la revocation et l'atténuation
-     * Nom d'utilisateur sera utilisé pour le refresh token
+    /***Pour chaque nouveau tkone on a besoin d'un UUID dans le cas où "Redise" est activé.*
+     * Si Possible utiliser le deviceId pour une revocation de tpken et macaroon en cas d'incident.
      */
 
-    public String generer(String prefix, String deviceId, long DUREE_MS) {
+    public String generer(String prefix, String deviceId, long dureeMs) {
         String uuid = UUID.randomUUID().toString();
-        tokenRedisService.stocker(prefix, uuid, deviceId, DUREE_MS);
+        if ("jwt:".equals(prefix)) {
+            registrationToken.registerJwt(uuid, deviceId, dureeMs);
+        }
         return uuid;
     }
-
-    // récupérer username depuis uuid
-    public Optional<String> getUsername(String prefix, String uuid) {
-        return tokenRedisService.getUsernameJwt(prefix, uuid);
-    }
-
-    // vérifier si uuid appartient à un username
-    public boolean belongsTo(String prefix, String uuid, String username) {
-        return getUsername(prefix, uuid)
-                .map(u -> u.equals(username))
-                .orElse(false);
-    }
-  public boolean existe(String prefix, String uuid) {
-      return tokenRedisService.existe(prefix, uuid);
-  }
-
-
 }

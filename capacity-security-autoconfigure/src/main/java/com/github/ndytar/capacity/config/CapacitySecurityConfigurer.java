@@ -8,6 +8,7 @@ import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -29,8 +30,10 @@ public class CapacitySecurityConfigurer
         this.capacityFilter = context.getBean(CapacityFilter.class);
         this.capacityAuthManager = context.getBean(CapacityAuthManager.class);
         AccessDeniedHandler handler = context.getBean(CapacityAccessDeniedHandler.class);
-
-        http.exceptionHandling(e -> e.accessDeniedHandler(handler))
+        AuthenticationEntryPoint entryPoint =
+                context.getBean("capacityAuthEntryPoint", AuthenticationEntryPoint.class);
+        http.exceptionHandling(e -> e.accessDeniedHandler(handler)
+                        .authenticationEntryPoint(entryPoint))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .anonymous(AbstractHttpConfigurer::disable);

@@ -1,6 +1,7 @@
 package com.github.ndytar.capacity.autoconfigure;
 
 import com.github.ndytar.capacity.aop.*;
+import com.github.ndytar.capacity.config.CapacityWebSecurityAutoConfiguration;
 import com.github.ndytar.capacity.login.AuthService;
 import com.github.ndytar.capacity.properties.CapacitySecurityAoautProperties;
 import com.github.ndytar.capacity.services.ExternalOauthVerifier;
@@ -50,7 +51,11 @@ public class CapacityAopAutoConfiguration {
     public SecurityAuditReporter securityAuditReporter(ApplicationEventPublisher publisher) {
         return new SpringSecurityAuditRepoerter(publisher);
     }
-
+     @Bean
+     @ConditionalOnMissingBean
+     public CapacityWebSecurityAutoConfiguration capacityWebSecurityAutoConfiguration(){
+            return new CapacityWebSecurityAutoConfiguration();
+     }
     @Bean
     @ConditionalOnMissingBean(SucurityVulnerabilityReport.class)//possible personnaliser implementer soit meme
     public SucurityVulnerabilityReport sucurityVulnerabilityReport(ApplicationEventPublisher publisher) {

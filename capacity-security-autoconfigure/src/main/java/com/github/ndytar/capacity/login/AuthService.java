@@ -1,28 +1,29 @@
 package com.github.ndytar.capacity.login;
 
-
 import com.github.ndytar.capacity.aop.OauthUserInfo;
 import com.github.ndytar.capacity.aop.SecurityVulnerabilityEvent;
 import com.github.ndytar.capacity.aop.VulnerabilityType;
 import com.github.ndytar.capacity.capacityModel.CapacityUser;
-import com.github.ndytar.capacity.jwt_macaroons.JwtService;
-import com.github.ndytar.capacity.jwt_macaroons.RefreshTokenService;
-import com.github.ndytar.capacity.jwt_macaroons.TokenResponse;
-import com.github.ndytar.capacity.jwt_macaroons.UuidService;
+import com.github.ndytar.capacity.jwt_macaroons.*;
 import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
 import com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
 import com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
 import com.github.ndytar.capacity.services.CapacityUserService;
 import com.github.ndytar.capacity.services.IAuthService;
 import com.github.ndytar.capacity.services.SucurityVulnerabilityReport;
-
+import io.jsonwebtoken.Claims;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Service
 public class AuthService implements IAuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private CapacityUserService capacityUserService;
     private CapacityPolitiqueMappingService politiqueService;
@@ -31,11 +32,8 @@ public class AuthService implements IAuthService {
     private UuidService uuidService;
     private CapacityJwtPropertie jwtPropertie;
     private CapacityMacaoonPropertie macaoonPropertie;
+    private ExtractionToken extractionToken;
 
-    //@Value("${capacity.jwt.duree:900000}")
-   // private long DUREE_MS;
-   // @Value("${capacity.macaroon.redis.enabled}")
-   // private boolean redisEnabled;
 
     private static final String PREFIX_JWT      = "jwt:";
     private static final String PREFIX_REF      = "refresh:";
@@ -44,12 +42,15 @@ public class AuthService implements IAuthService {
     SucurityVulnerabilityReport vulnerabilityReport;
 
     public AuthService(CapacityUserService capacityUserService,
-                       CapacityPolitiqueMappingService politiqueService, JwtService jwtService,
-                       RefreshTokenService refreshTokenService, UuidService uuidService,
+                       CapacityPolitiqueMappingService politiqueService,
+                       JwtService jwtService,
+                       RefreshTokenService refreshTokenService,
+                       UuidService uuidService,
                        SucurityVulnerabilityReport vulnerabilityReport,
                        PasswordEncoder encoder,
                        CapacityJwtPropertie jwtPropertie,
-                       CapacityMacaoonPropertie macaoonPropertie) {
+                       CapacityMacaoonPropertie macaoonPropertie,
+                       ExtractionToken extractionToken) {
         this.capacityUserService = capacityUserService;
         this.politiqueService = politiqueService;
         this.jwtService = jwtService;
@@ -59,11 +60,11 @@ public class AuthService implements IAuthService {
         this.encoder = encoder;
         this.jwtPropertie = jwtPropertie;
         this.macaoonPropertie = macaoonPropertie;
+        this.extractionToken = extractionToken;
     }
     // login
     @Override
     public TokenResponse login(String username, String password, String deviceId) {
-//log.info(encoder.encode(password));
         CapacityUser user = capacityUserService
                 .findByUsername(username)
                 .orElseThrow(() -> {
@@ -80,6 +81,8 @@ public class AuthService implements IAuthService {
         //log.info("Connexion : {} sur appareil : {}", username, deviceId);
         return genererTokenResponse(user, deviceId);
     }
+
+   //Cas auth par OAUTH
     @Override
     public TokenResponse login(String username, String deviceId) {
 
@@ -96,16 +99,14 @@ public class AuthService implements IAuthService {
                 });
 
 
+        log.info("Connexion : {} sur appareil : {}", username, deviceId);
         return genererTokenResponse(user, deviceId);
     }
     // refresh
     @Override
     public TokenResponse refresh(String refreshToken) {
 
-        String username = refreshTokenService.valider(PREFIX_REF, refreshToken)
-                .orElseThrow(() ->
-                        new RuntimeException("Refresh token invalide"));
-
+        String username = getName(refreshToken);
         CapacityUser user = capacityUserService
                 .findByUsername(username)
                 .orElseThrow(() ->
@@ -128,7 +129,7 @@ public class AuthService implements IAuthService {
             politique.forEach((scope, actions) -> {
                 if (macaoonPropertie.isRedis())
                     uuid.set(uuidService.generer(PREFIX_JWT, deviceId, jwtPropertie.getDuration()));
-                String token = jwtService.generer(scope, actions, false, null,  uuid.get());
+                String token = jwtService.generer(scope, actions, false, null, uuid.get());
                 accessTokens.put(scope, token);
             });
 
@@ -160,6 +161,7 @@ public class AuthService implements IAuthService {
 
         return fusion;
     }
+
     @Override
     public TokenResponse processExternalOauthVerification(OauthUserInfo userInfo) {
         System.out.println("\n on genere les capacitys");
@@ -177,5 +179,13 @@ public class AuthService implements IAuthService {
             );
         }
         return rawPassword.equals(encodedPassword);
+    }
+    private String getName(String refreshToken) {
+        Claims claims = extractionToken.extractClaims(refreshToken);
+        if (!"refresh".equals(claims.get("type"))) {
+            return null;
+        }
+
+        return claims.getSubject();
     }
 }
