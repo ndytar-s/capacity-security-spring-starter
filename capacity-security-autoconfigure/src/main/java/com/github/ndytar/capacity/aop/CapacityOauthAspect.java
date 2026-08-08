@@ -2,6 +2,7 @@ package com.github.ndytar.capacity.aop;
 
 
 import com.github.ndytar.capacity.annotation.CapacityOauth;
+import com.github.ndytar.capacity.exception.RedisUnavailableException;
 import com.github.ndytar.capacity.jwt_macaroons.TokenResponse;
 import com.github.ndytar.capacity.login.AuthService;
 import com.github.ndytar.capacity.properties.CapacitySecurityAoautProperties;
@@ -13,6 +14,7 @@ import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -35,6 +37,8 @@ public class CapacityOauthAspect {
 
     @Around("@annotation(capacityOauth)")
     public Object handleOauth(ProceedingJoinPoint joinPoint, CapacityOauth capacityOauth) throws Throwable {
+try {
+
 
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
         HttpServletRequest request = attributes.getRequest();
@@ -74,5 +78,9 @@ public class CapacityOauthAspect {
         }
 
         return joinPoint.proceed(nouveauxArgs);
+    }catch (RedisConnectionFailureException e) {
+        throw new RedisUnavailableException("Redis is unavailable", e);
+    }
+
     }
 }

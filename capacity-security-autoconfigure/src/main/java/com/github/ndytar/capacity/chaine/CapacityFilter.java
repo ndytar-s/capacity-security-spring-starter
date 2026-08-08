@@ -105,17 +105,11 @@ private final ExtractionToken extractionToken;
 
                 } else {
                     throw new BadCredentialsException("Token invalid or expired ");
-
                 }
-
-
             } else {
                 essayerMacaroon(token, request,response);
             }
-
-
             chain.doFilter(request, response);
-
         }
         catch (AuthenticationException  e){
             SecurityContextHolder.clearContext();
