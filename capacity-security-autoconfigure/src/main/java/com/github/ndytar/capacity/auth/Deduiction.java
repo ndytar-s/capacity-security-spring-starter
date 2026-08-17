@@ -1,18 +1,19 @@
 package com.github.ndytar.capacity.auth;
 
-import com.github.ndytar.capacity.annotation.RequiresCapacity;
+import  com.github.ndytar.capacity.annotation.RequiresCapacity;
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.method.HandlerMethod;
 
 import java.util.Map;
 
-import jakarta.servlet.RequestDispatcher;
-import org.springframework.stereotype.Service;
 
-
-@Service
 public class Deduiction {
+    Logger log = LoggerFactory.getLogger(Deduiction.class);
+
     private static final Map<String, String> HTTP_ACTION = Map.of(
             "GET",    "READ",
             "POST",   "WRITE",
@@ -32,6 +33,7 @@ public class Deduiction {
         String originalUri = (String) request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);
         if (originalUri != null) {
             String scope = extraireScopeDepuisUri(originalUri);
+            log.info("Forward d'erreur détecté. URI originale={}, scope déduit={}", originalUri, scope);
             return scope;
         }
 
@@ -43,10 +45,12 @@ public class Deduiction {
             // Protection si le placeholder n'a pas été résolu par Spring
             // (ex: ${server.error.path:${error.path:/error}})
             if (rawPath.contains("${")) {
+                log.warn("Placeholder non résolu détecté: {}. Fallback sur URI courante.", rawPath);
                 return extraireScopeDepuisUri(request.getRequestURI());
             }
 
             String scope = rawPath.endsWith("/**") ? rawPath : rawPath + "/**";
+            log.info("Deduire scope {}", scope);
             return scope;
         }
 
@@ -92,6 +96,7 @@ public class Deduiction {
                         || scopeToken.equals("/**")
                         || scopeRequis.startsWith(scopeToken.replace("/**", ""));
 
+        log.info("urlDansToken: {}, tokenCouvreRequis: {}", urlDansToken, tokenCouvreRequis);
         return urlDansToken && tokenCouvreRequis;
     }
 }

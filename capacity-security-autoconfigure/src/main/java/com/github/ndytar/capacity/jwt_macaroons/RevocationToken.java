@@ -1,13 +1,11 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
 
-import com.github.ndytar.capacity.services.RevocationTokenService;
-import com.github.ndytar.capacity.services.TokenStorageService;
+import  com.github.ndytar.capacity.services.RevocationTokenService;
+import  com.github.ndytar.capacity.services.TokenStorageService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 @Slf4j
-@Service
 public class RevocationToken implements RevocationTokenService {
 
     private final TokenStorageService tokenStorage;
@@ -30,11 +28,13 @@ public class RevocationToken implements RevocationTokenService {
 
     @Override
     public boolean revokeJwt(String jwtId) {
-
+        log.info("Avant Revoke jwt {}", tokenStorage.existsJwt(jwtId));
         // Suppression des macaroons associés
         tokenStorage.deleteMacaroons(jwtId);
         // Suppression du JWT
         tokenStorage.deleteJwt(jwtId);
+        log.info("Apres Revoke jwt {}", tokenStorage.existsJwt(jwtId));
+
         return !tokenStorage.existsJwt(jwtId);
     }
     @Override

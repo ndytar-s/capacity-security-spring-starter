@@ -1,14 +1,13 @@
  package com.github.ndytar.capacity.jwt_macaroons;
 
- import com.github.ndytar.capacity.exception.InvalidTokenException;
- import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
- import com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
- import com.github.ndytar.capacity.services.RegistrationTokenService;
  import com.github.nitram509.jmacaroons.*;
+ import  com.github.ndytar.capacity.exception.InvalidTokenException;
+ import  com.github.ndytar.capacity.properties.CapacityJwtPropertie;
+ import  com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
+ import  com.github.ndytar.capacity.services.RegistrationTokenService;
  import io.jsonwebtoken.Claims;
  import org.slf4j.Logger;
  import org.slf4j.LoggerFactory;
- import org.springframework.stereotype.Service;
 
  import java.time.Duration;
  import java.time.Instant;
@@ -18,7 +17,6 @@
  import java.util.UUID;
  import java.util.concurrent.atomic.AtomicBoolean;
 
- @Service
 public class MacaroonService {
      private final CapacityJwtPropertie jwtPropertie;
      private final CapacityMacaoonPropertie macaoonPropertie;
@@ -28,12 +26,8 @@ public class MacaroonService {
     private static final Logger log = LoggerFactory.getLogger(MacaroonService.class);
 
 
-    public MacaroonService(
-            CapacityMacaoonPropertie macaoonPropertie,
-            CapacityJwtPropertie jwtPropertie,
-            ExtractionToken extractionToken,
-            RevocationToken revocationToken,
-            RegistrationTokenService registrationToken) {
+    public MacaroonService(CapacityMacaoonPropertie macaoonPropertie,
+                           CapacityJwtPropertie jwtPropertie, ExtractionToken extractionToken, RevocationToken revocationToken, RegistrationTokenService registrationToken) {
 
 
         this.macaoonPropertie = macaoonPropertie;
@@ -43,7 +37,8 @@ public class MacaroonService {
         this.registrationToken = registrationToken;
     }
     public String creer(String jwtToken, String ressource, Set<String> actions, boolean oneTime) {
-
+        if (jwtToken == null || jwtToken.isBlank())
+            throw ApiExceptions.jwtAbsent();
         String jwtId = extractionToken.extractJwtId(jwtToken);
         if (macaoonPropertie.isRedis())
             if (jwtId == null ||  !registrationToken.existsJwt(jwtId))
@@ -54,49 +49,47 @@ public class MacaroonService {
         Macaroon macaroon = MacaroonsBuilder.create(
             macaoonPropertie.getLocation(), macaoonPropertie.getKeySecret(), idMac);
 
-
-        if (jwtToken == null || jwtToken.isBlank())
-            throw ApiExceptions.jwtAbsent();
-
-
         Claims claims = extractionToken.extractClaims(jwtToken);
         if (claims == null)
             throw ApiExceptions.jwtInvalide();
 
 
-        String scope = claims.get("scope", String.class);
-        log.debug("Scope du JWT: {}", scope);
-
-            if(!scope.matches(ressource
-                .replace("/**", "(/.*)?")
-                .replace("/*",  "/[^/]*")
-                .replace("{id}", "[^/]*"))) {
-                throw ApiExceptions.ressourceInterdite(ressource);
-            }
-
+        // eviter null actions
         if (actions == null || actions.isEmpty())
-            throw ApiExceptions.parametreInvalide("Au moins une action doit être demandée");
-
-
-        MacaroonsBuilder builder = new MacaroonsBuilder(macaroon);
-        builder.add_first_party_caveat("ressource=" + ressource);
-
-                // extraire actions
+            throw ApiExceptions.parametreInvalide("At least one action must be requested");
+        // extraire actions
         List<String> actionsList = claims.get("actions", List.class);
         log.info("actionsList: {}", actionsList);
         Set<String> actionsRquise = actionsList != null ? new HashSet<>(actionsList) : Set.of("READ");
 
+        // Extraction et verification de scope(token) et resource demandee
+        String scope = claims.get("scope", String.class);
+        log.debug("Scope du JWT: {}", scope);
+        boolean isScope = scope.matches(ressource
+                .replace("/**", "(/.*)?")
+                .replace("/*",  "/[^/]*")
+                .replace("{id}", "[^/]*"));
+        // Lever exception cas où la resource demande n'existe pas dans le scope de token et action ne contient pas "*" (joker) et resource non vide
+            if(!isScope && !actionsRquise.contains("*") && !ressource.isEmpty()) {
+                throw ApiExceptions.ressourceInterdite(ressource);
+            }
+        MacaroonsBuilder builder = new MacaroonsBuilder(macaroon);
+            log.info("resource : {} ; scope : {}",ressource,scope);
+
+            if (ressource.isEmpty())// Cas de joker "*"
+                builder.add_first_party_caveat("ressource=" + scope);
+        builder.add_first_party_caveat("ressource=" + ressource);
+
+        //Lever exception si le token ne renferme pas action(s) demandee(s) et et ne contient pas un joker
         for (String action : actions) {
-                if (!actionsRquise.contains(action.toUpperCase()))
+                if (!actionsRquise.contains(action.toUpperCase()) && !actionsRquise.contains("*"))
                     throw ApiExceptions.actionInterdite(action);
             builder.add_first_party_caveat("actions=" + action.toUpperCase());
-
         }
 
      if(oneTime){
          builder.add_first_party_caveat("oneTime=true");
      }
-
         String jwtd = extractionToken.extractJwtId(jwtToken);
         if (jwtd != null) {
             log.info("jwtd with create mac: {}", jwtd);
@@ -114,8 +107,6 @@ public class MacaroonService {
 
      public String attenuate(String token, String... caveats) {
 
-        if (token == null || token.isBlank())
-            return null;
 
         Macaroon macaroon = deserialiser(token);
 
@@ -183,10 +174,13 @@ public class MacaroonService {
 
 //Attention! le retoure de cette methode est inversé
   public boolean verifier(Macaroon macaroon) {
-        try {
 
+        if (macaroon == null)
+            throw new InvalidTokenException("INVALID_TOKEN,"," Null token not acceptable",null);
 
-            AtomicBoolean isValid = new AtomicBoolean(true);
+      try {
+
+          AtomicBoolean isValid = new AtomicBoolean(true);
 
           String uuid = extractionToken.extractUuidMac(macaroon);
 
@@ -228,11 +222,12 @@ public class MacaroonService {
           return !isValid.get();
         }
         catch ( MacaroonValidationException e) {
-            throw new InvalidTokenException("Invalid token signature", e);
+            throw new InvalidTokenException("INVALID_SIGNATURE","Invalid token signature", e);
         }
     }
 
-     public boolean revokeMacaroon(Macaroon macaroon) {
+     public boolean revokeMacaroon(String mac) {
+         Macaroon macaroon = deserialiser(mac);
          String jwtId = extractionToken.extractJwtId(macaroon);
          String macaroonId = extractionToken.extractMacaroonId(macaroon);
 
@@ -255,15 +250,20 @@ public class MacaroonService {
          return revocationToken.revokeAllMacaroons();
      }
 
-    public String serialiser(Macaroon macaroon)    { return macaroon.serialize(); }
+    public String serialiser(Macaroon macaroon)    {
+        if (macaroon == null )
+            throw new InvalidTokenException("INVALID_TOKEN,"," Null token not acceptable",null);
+        return macaroon.serialize();
+    }
     public Macaroon deserialiser(String token) {
         try {
-            if (token != null)
-                return MacaroonsBuilder.deserialize(token);
-            return null;
+            if (token == null || token.isBlank())
+                throw new InvalidTokenException("INVALID_TOKEN,"," Null token not acceptable",null);
+            return MacaroonsBuilder.deserialize(token);
+
          }
         catch ( Exception e) {
-         throw new InvalidTokenException("Invalid token signature", e);
+         throw new InvalidTokenException("INVALID_SIGNATURE,","Invalid token signature", e);
         }
     }
 

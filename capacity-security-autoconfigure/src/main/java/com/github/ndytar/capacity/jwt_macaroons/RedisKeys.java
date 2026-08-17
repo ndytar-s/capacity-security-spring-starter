@@ -1,8 +1,6 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-import org.springframework.stereotype.Component;
 
-@Component
 public final class RedisKeys {
 
     private static final String JWT = "jwt:";
@@ -10,7 +8,7 @@ public final class RedisKeys {
     private static final String MACAROONS = "macaroons:";
     private static final String ALL_MACAROONS = "macaroons:all";
 
-    private RedisKeys() {
+    public RedisKeys() {
     }
 
     public static String jwt(String jwtId) {

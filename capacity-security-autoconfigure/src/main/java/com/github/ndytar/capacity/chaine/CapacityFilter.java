@@ -1,12 +1,15 @@
 package com.github.ndytar.capacity.chaine;
 
-import com.github.ndytar.capacity.auth.CapacityAuth;
-import com.github.ndytar.capacity.jwt_macaroons.ExtractionToken;
-import com.github.ndytar.capacity.jwt_macaroons.MacaroonService;
-import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
-import com.github.ndytar.capacity.services.SecurityAuditReporter;
 import com.github.nitram509.jmacaroons.CaveatPacket;
 import com.github.nitram509.jmacaroons.Macaroon;
+import  com.github.ndytar.capacity.auth.CapacityAuth;
+import  com.github.ndytar.capacity.exception.RedisUnavailableException;
+import  com.github.ndytar.capacity.jwt_macaroons.ExtractionToken;
+import  com.github.ndytar.capacity.jwt_macaroons.JwtService;
+import  com.github.ndytar.capacity.jwt_macaroons.MacaroonService;
+import  com.github.ndytar.capacity.properties.CapacityJwtPropertie;
+import  com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
+import  com.github.ndytar.capacity.services.SecurityAuditReporter;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -14,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
@@ -21,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.io.IOException;
@@ -37,7 +42,11 @@ public class CapacityFilter extends OncePerRequestFilter {
 private final ExtractionToken extractionToken;
     private final MacaroonService macaroonService;
     private final CapacityJwtPropertie jwtPropertie;
-   SecurityAuditReporter auditReporter;
+    private final CapacityMacaoonPropertie macaoonPropertie;
+    private final HandlerExceptionResolver resolver;
+    private final JwtService jwtService;
+
+    SecurityAuditReporter auditReporter;
     private RequestMappingHandlerMapping handlerMapping;
 
     private  List<String> auditActions;
@@ -45,19 +54,23 @@ private final ExtractionToken extractionToken;
     private  String audiUsername;
     private  String audiPassword;
 
-    public CapacityFilter(
-            AuthenticationEntryPoint authenticationEntryPoint,
+    public CapacityFilter(AuthenticationEntryPoint authenticationEntryPoint,
                           ExtractionToken extractionToken,
-                          MacaroonService macaroonService,
+                          MacaroonService macaroonService, CapacityMacaoonPropertie macaoonPropertie,
                           SecurityAuditReporter auditReporter,
                           RequestMappingHandlerMapping handlerMapping,
-                          CapacityJwtPropertie jwtPropertie) {
+                          CapacityJwtPropertie jwtPropertie,
+                          @Qualifier("handlerExceptionResolver")HandlerExceptionResolver resolver,
+                          JwtService jwtService) {
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.extractionToken = extractionToken;
         this.macaroonService = macaroonService;
+        this.macaoonPropertie = macaoonPropertie;
         this.auditReporter = auditReporter;
         this.handlerMapping = handlerMapping;
         this.jwtPropertie = jwtPropertie;
+        this.resolver = resolver;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -72,7 +85,7 @@ private final ExtractionToken extractionToken;
 
             if (token != null && isJwt(token)) {
                 log.info("Option Token");
-
+                isRedise(token);
                 Claims claims = extractionToken.extractClaims(token);
 
                 if (claims != null) {
@@ -105,7 +118,10 @@ private final ExtractionToken extractionToken;
 
                 } else {
                     throw new BadCredentialsException("Token invalid or expired ");
+
                 }
+
+
             } else {
                 essayerMacaroon(token, request,response);
             }
@@ -113,20 +129,25 @@ private final ExtractionToken extractionToken;
         }
         catch (AuthenticationException  e){
             SecurityContextHolder.clearContext();
+            authenticationEntryPoint.commence(request, response, e);
+        }catch (RuntimeException ex) {
+            SecurityContextHolder.clearContext();
+            log.warn(ex.getMessage());
 
-            authenticationEntryPoint.commence(
-                    request,
-                    response,
-                    e
-            );
+            // On envoie l'exception vers le @RestControllerAdvice
+            resolver.resolveException(request, response, null, new RedisUnavailableException("Redis is unavailable", ex));
+
+        } catch (org.apache.tomcat.websocket.AuthenticationException e) {
+            throw new BadCredentialsException("Token invalid or expired/revoked ");
         }
     }
 
-private void essayerMacaroon(String token, HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
-    try {
+
+    private void essayerMacaroon(String token, HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
+  //  try {
         log.info("Option Macaroon");
         // si c'est un JWT, ne pas essayer comme Macaroon
-        if (!isJwt(token ) && token != null) {
+        if (token != null &&!isJwt(token )) {
 
 
             Macaroon macaroon = macaroonService.deserialiser(token);
@@ -140,8 +161,8 @@ private void essayerMacaroon(String token, HttpServletRequest request,HttpServle
 
             String ressourceDemandee = request.getRequestURI();
             if (macaroonService.verifier(macaroon)) {
-                log.warn("Macaroon invalid or expired");
-                throw new BadCredentialsException("Macaroon invalid or expired");
+                log.warn("Token invalid or expired");
+                throw new BadCredentialsException("Token invalid or expired");
             }
             String scope = extraireScopeMacaroon(macaroon);
             auditScop = scope;
@@ -152,20 +173,14 @@ private void essayerMacaroon(String token, HttpServletRequest request,HttpServle
             String uuid =  extractionToken.extractUuidMac(macaroon);
             //revoquer apres 1er usage
             if (oneTime) {
-                macaroonService.revokeMacaroon(macaroon);
+                macaroonService.revokeMacaroon(macaroonService.serialiser(macaroon));
             }
 
             log.info("Macaroon valide, ressourceDemandee : {}, scopMacaroon:{} ", ressourceDemandee, scope);
             log.info("scope: {}, action: {}, oneTime: {}, uuid: {}", scope, actions, oneTime, uuid);
             injecterAuth(token, scope, actions, oneTime, uuid);
         }
-    } catch (AuthenticationException ex) {
 
-        SecurityContextHolder.clearContext();
-
-        throw new BadCredentialsException("Macaroon invalid or expired");
-
-    }
 }
 
     // Nouvelle méthode extraction uuid Macaroon
@@ -222,5 +237,9 @@ private void essayerMacaroon(String token, HttpServletRequest request,HttpServle
        if (token != null && !token.isEmpty())
            return token.split("\\.").length == 3;
        return false;
+    }
+    private void isRedise(String token) throws org.apache.tomcat.websocket.AuthenticationException {
+        if (macaoonPropertie.isRedis())
+            jwtService.isJwtRedis(token);
     }
 }

@@ -1,16 +1,15 @@
 package com.github.ndytar.capacity.capacityModel;
 
-
-import java.util.List;
+import java.util.Set;
 
 public class CapacityUser {
 
     private String       username;
     private String       password;
-    private List<String> roles;
+    private Set<String> roles;
 
     public CapacityUser(String username, String password,
-                        List<String> roles) {
+                        Set<String> roles) {
         this.username = username;
         this.password = password;
         this.roles    = roles;
@@ -18,5 +17,5 @@ public class CapacityUser {
 
     public String       getUsername() { return username; }
     public String       getPassword() { return password; }
-    public List<String> getRoles()    { return roles; }
+    public Set<String> getRoles()    { return roles; }
 }

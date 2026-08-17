@@ -9,7 +9,7 @@ import java.util.List;
 
 @ConfigurationProperties(prefix = "capacity.security")
 public class CapacitySecurityPropertie {
-    private String mtls;
+   private String mtls;
     private List<IpAddressMatcher> allowedIps = List.of();
 
     // Le setter accepte la String (séparée par des virgules) et crée les Matchers

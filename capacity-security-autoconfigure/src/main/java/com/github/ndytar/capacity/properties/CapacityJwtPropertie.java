@@ -2,9 +2,7 @@ package com.github.ndytar.capacity.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-
 @ConfigurationProperties(prefix = "capacity.jwt")
-
 public class CapacityJwtPropertie {
    private long duration=900000;
    private long refduration=604800000;

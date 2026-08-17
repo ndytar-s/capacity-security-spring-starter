@@ -1,11 +1,10 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-import com.github.ndytar.capacity.services.RegistrationTokenService;
-import org.springframework.stereotype.Service;
+import  com.github.ndytar.capacity.services.RegistrationTokenService;
 
 import java.util.UUID;
 
-@Service
+
 public class UuidService {
     private final RegistrationTokenService registrationToken;
 
@@ -16,11 +15,10 @@ public class UuidService {
      * Si Possible utiliser le deviceId pour une revocation de tpken et macaroon en cas d'incident.
      */
 
-    public String generer(String prefix, String deviceId, long dureeMs) {
+    public String generer(String deviceId, long dureeMs) {
         String uuid = UUID.randomUUID().toString();
-        if ("jwt:".equals(prefix)) {
-            registrationToken.registerJwt(uuid, deviceId, dureeMs);
-        }
+        registrationToken.registerJwt(uuid, deviceId, dureeMs);
+
         return uuid;
     }
 }

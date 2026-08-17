@@ -7,9 +7,10 @@ public class CapacityMacaoonPropertie {
     private String location= "http://localhost:8080";
     private  boolean stric = true;
     private boolean redis = false;
-    private String keySecret;
+    private String keySecret = "X9m12Ao7QA23/fWyv8UVJBBQDyViQ2gD2vnmGzu+Ij0=";
 
     public String getKeySecret() {
+
         return keySecret;
     }
 

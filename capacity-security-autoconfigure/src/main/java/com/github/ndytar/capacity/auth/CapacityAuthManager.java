@@ -1,9 +1,11 @@
 package com.github.ndytar.capacity.auth;
 
-import com.github.ndytar.capacity.annotation.OneTimeAccess;
-import com.github.ndytar.capacity.exception.CapacityDeniedException;
+import  com.github.ndytar.capacity.annotation.OneTimeAccess;
+import  com.github.ndytar.capacity.exception.CapacityDeniedException;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.AuthorizationResult;
@@ -19,13 +21,19 @@ import java.util.function.Supplier;
 public class CapacityAuthManager
         implements AuthorizationManager<RequestAuthorizationContext> {
 
+    private static final Logger log = LoggerFactory.getLogger(CapacityAuthManager.class);
 
     private Deduiction deduiction;
     private RequestMappingHandlerMapping handlerMapping;
     private IpAuthorizationChecker ipAuthorizationChecker;
-    public CapacityAuthManager(Deduiction deduiction, RequestMappingHandlerMapping handlerMapping) {
+
+    public CapacityAuthManager(
+            Deduiction deduiction,
+            RequestMappingHandlerMapping handlerMapping,
+            IpAuthorizationChecker ipAuthorizationChecker) {
         this.deduiction = deduiction;
         this.handlerMapping = handlerMapping;
+        this.ipAuthorizationChecker = ipAuthorizationChecker;
     }
 
     @Override
@@ -51,8 +59,12 @@ public class CapacityAuthManager
 
     // JOKER * : court-circuite tout
             if (capacityAuth.getActions().contains("*")) {
+                log.info("Joker * : accès total autorisé");
                 return new AuthorizationDecision(true);
             }
+
+
+
 
         try {
             // récupérer le handler de la requête
@@ -68,6 +80,7 @@ public class CapacityAuthManager
 
             HandlerMethod handler = (HandlerMethod) chain.getHandler();
 
+
             if (!ipAuthorizationChecker.verifierIp(request, handler)) {
                 throw new CapacityDeniedException("Unauthorized IP access to this resource.");
             }
@@ -75,6 +88,8 @@ public class CapacityAuthManager
             // 2. déduire le scope requis
 
             String scopeRequis = deduiction.deduireScope(handler, request);
+            log.info("Scope requis : {}", scopeRequis);
+
             // 3. vérifier que le token couvre le scope
             if (!deduiction.scopeCouvre(capacityAuth.getResourceScope(),
                     request.getRequestURI(), scopeRequis)) {
@@ -85,6 +100,8 @@ public class CapacityAuthManager
 
             // 4. déduire l'action requise
             String actionRequise = deduiction.deduireAction(handler, request);
+            log.info("Action requise : {}", actionRequise);
+            log.info("Action aquise : {}", capacityAuth.getActions());
 
             // 5. vérifier que le token a l'action
             if (!capacityAuth.getActions().contains(actionRequise)) {
@@ -98,6 +115,8 @@ public class CapacityAuthManager
 
             }
 
+            log.info("Accès autorisé : scope={}, action={}",
+                    scopeRequis, actionRequise);
             return new AuthorizationDecision(true);
 
         } catch (NoHandlerFoundException e) {
@@ -107,10 +126,14 @@ public class CapacityAuthManager
             throw e;
 
         } catch (Exception e) {
+            log.error("Erreur : {}", e.getMessage());
             throw  new CapacityDeniedException("Error :"+ e.getMessage());
 
         }
     }
+
+
+
 
 
     // vérifier @OneTimeAccess

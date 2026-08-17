@@ -1,22 +1,20 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-import com.github.ndytar.capacity.exception.InvalidTokenException;
-import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
-import com.github.ndytar.capacity.services.ExtractionTokenService;
 import com.github.nitram509.jmacaroons.CaveatPacket;
 import com.github.nitram509.jmacaroons.Macaroon;
-
+import  com.github.ndytar.capacity.exception.InvalidTokenException;
+import  com.github.ndytar.capacity.properties.CapacityJwtPropertie;
+import  com.github.ndytar.capacity.services.ExtractionTokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
-import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Base64;
 
-@Component
+
 public class ExtractionToken implements ExtractionTokenService {
 
     private final CapacityJwtPropertie jwtPropertie;
@@ -33,10 +31,10 @@ public class ExtractionToken implements ExtractionTokenService {
             return Keys.hmacShaKeyFor(cleBytes);
         }
         catch (SignatureException e) {
-            throw new InvalidTokenException("Invalid token signature", e);
+            throw new InvalidTokenException("INVALID_SIGNATURE", "Invalid token signature", e);
 
         } catch (IllegalArgumentException e) {
-        throw new IllegalStateException("The configured token signing key is invalid", e);
+        throw new IllegalStateException("Error: The configured token signing key is invalid", e);
     }
 
     }
@@ -53,10 +51,11 @@ public class ExtractionToken implements ExtractionTokenService {
                     .parseSignedClaims(jwt)
                     .getPayload();
         } catch (SignatureException e) {
-            throw new InvalidTokenException("Invalid token signature", e);
+            throw new InvalidTokenException("INVALID_SIGNATURE", "Invalid token signature", e);
 
-        } catch (JwtException e) {
-            throw new InvalidTokenException("Invalid  token", e);
+        }
+        catch (JwtException e) {
+            throw new InvalidTokenException("INVALID_TOKEN"," Invalid format token", e);
         }
 
     }

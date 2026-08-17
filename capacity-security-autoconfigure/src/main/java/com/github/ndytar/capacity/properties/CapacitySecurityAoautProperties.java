@@ -3,7 +3,6 @@ package com.github.ndytar.capacity.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-
 @ConfigurationProperties(prefix = "capacity.security.oauth")
 public class CapacitySecurityAoautProperties {
 

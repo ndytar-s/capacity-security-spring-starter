@@ -1,7 +1,7 @@
 package com.github.ndytar.capacity.auth;
 
-import com.github.ndytar.capacity.annotation.AllowedIp;
-import com.github.ndytar.capacity.properties.CapacitySecurityPropertie;
+import  com.github.ndytar.capacity.annotation.AllowedIp;
+import  com.github.ndytar.capacity.properties.CapacitySecurityPropertie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +13,7 @@ public class IpAuthorizationChecker {
     private static final Logger log = LoggerFactory.getLogger(IpAuthorizationChecker.class);
     private final CapacitySecurityPropertie securityProperties;
 
-    // Injection automatique par constructeur grâce à @Component
+    // Injection automatique par constructeur
     public IpAuthorizationChecker(CapacitySecurityPropertie securityProperties) {
         this.securityProperties = securityProperties;
     }

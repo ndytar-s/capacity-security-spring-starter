@@ -1,7 +1,7 @@
 package com.github.ndytar.capacity.login;
 
-import com.github.ndytar.capacity.services.MappingScopeActions;
-import com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
+import  com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
+import  com.github.ndytar.capacity.services.MappingScopeActions;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;

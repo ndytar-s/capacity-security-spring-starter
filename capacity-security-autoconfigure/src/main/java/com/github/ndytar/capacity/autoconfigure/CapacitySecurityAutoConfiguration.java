@@ -5,6 +5,7 @@ import com.github.ndytar.capacity.auth.Deduiction;
 import com.github.ndytar.capacity.auth.IpAuthorizationChecker;
 import com.github.ndytar.capacity.chaine.CapacityFilter;
 import com.github.ndytar.capacity.config.CapacityAuthenticationEntryPoint;
+import com.github.ndytar.capacity.exception.CapacityAccessDeniedHandler;
 import com.github.ndytar.capacity.jwt_macaroons.*;
 import com.github.ndytar.capacity.login.AuthService;
 import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
@@ -12,16 +13,20 @@ import com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
 import com.github.ndytar.capacity.properties.CapacitySecurityAoautProperties;
 import com.github.ndytar.capacity.properties.CapacitySecurityPropertie;
 import com.github.ndytar.capacity.services.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import static com.github.ndytar.capacity.config.CapacitySecurityConfigurer.capacitySecurity;
@@ -43,18 +48,25 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
     @ConditionalOnMissingBean
     public CapacityFilter capacityFilter(
             AuthenticationEntryPoint authenticationEntryPoint,
-            MacaroonService macaroonService,
+            ExtractionToken extractionToken,
+            MacaroonService macaroonService, CapacityMacaoonPropertie macaoonPropertie,
             SecurityAuditReporter auditReporter,
             RequestMappingHandlerMapping handlerMapping,
             CapacityJwtPropertie jwtPropertie,
-            ExtractionToken extractionToken
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver,
+            JwtService jwtService
     ) {
 
         // filter.setHEADER(properties.getJwt().getHeaderName());
         return new CapacityFilter(
-                authenticationEntryPoint, extractionToken,
-               macaroonService, auditReporter,
-                 handlerMapping, jwtPropertie
+                authenticationEntryPoint,
+                extractionToken,
+               macaroonService, macaoonPropertie,
+                 auditReporter,
+                handlerMapping,
+                 jwtPropertie,
+                resolver,
+                jwtService
         );
     }
 
@@ -81,6 +93,15 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
         );
     }
 
+    @Bean @ConditionalOnMissingBean
+    public ExtractionToken extractionToken(CapacityJwtPropertie jwtPropertie){
+    return new ExtractionToken(jwtPropertie);
+    }
+
+    @Bean @ConditionalOnMissingBean public CapacityAccessDeniedHandler capacityAccessDeniedHandler() {
+     return new CapacityAccessDeniedHandler();
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public MacaroonService macaroonService(CapacityMacaoonPropertie macaoonPropertie,
@@ -97,14 +118,27 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnBean(StringRedisTemplate.class)
+    public RedisTokenStorage redisTokenStorage(  StringRedisTemplate redisTemplate,
+                                                 RedisKeys redisKeys){
+     return new RedisTokenStorage(redisTemplate,redisKeys);
+    }
+    @Bean
+    @ConditionalOnMissingBean
+    public RedisKeys redisKeys() {
+    return new RedisKeys();
+    }
+    @Bean
+    @ConditionalOnMissingBean
     public JwtService jwtService(
             CapacityJwtPropertie jwtPropertie,
             RevocationToken revocationToken,
-            ExtractionToken extractionToken) {
+            ExtractionToken extractionToken,
+            RegistrationToken registrationToken) {
         return new JwtService(
                jwtPropertie,
                 revocationToken,
-                extractionToken);
+                extractionToken, registrationToken);
     }
     @Bean
     @ConditionalOnMissingBean
@@ -125,13 +159,31 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
 //    }
     @Bean
     @ConditionalOnMissingBean
+    public UuidService uuidService(RegistrationTokenService registrationToken){
+     return  new UuidService(registrationToken);
+    }
+    @Bean
+    @ConditionalOnMissingBean
+     public RevocationToken revocationToken(TokenStorageService tokenStorage){
+      return new RevocationToken(tokenStorage);
+    }
+    @Bean
+    @ConditionalOnMissingBean
+    public RegistrationToken registrationToken(TokenStorageService tokenStorageService){
+    return new RegistrationToken(tokenStorageService);
+    }
+    @Bean
+    @ConditionalOnMissingBean
     public Deduiction deduiction() {
         return new Deduiction();
     }
     @Bean
     @ConditionalOnMissingBean
-    public CapacityAuthManager capacityAuthManager(Deduiction deduiction, RequestMappingHandlerMapping handlerMapping) {
-        return new CapacityAuthManager(deduiction, handlerMapping);
+    public CapacityAuthManager capacityAuthManager(
+            Deduiction deduiction,
+            RequestMappingHandlerMapping handlerMapping,
+            IpAuthorizationChecker ipAuthorizationChecker) {
+        return new CapacityAuthManager(deduiction,handlerMapping,ipAuthorizationChecker);
     }
 
 
