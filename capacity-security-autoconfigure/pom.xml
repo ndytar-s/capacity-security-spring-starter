@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.ndytar</groupId>
         <artifactId>capacity-security</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>v1.0.1</version>
     </parent>
     <artifactId>capacity-security-autoconfigure</artifactId>
     <name>Archetype - capacity-security-autoconfigure</name>
