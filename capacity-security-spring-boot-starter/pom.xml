@@ -15,8 +15,6 @@
 
     <dependencies>
 
-
-
         <!-- Spring Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -69,6 +67,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
             <version>3.3.0</version>
+            <optional>true</optional>
 
         </dependency>
 
