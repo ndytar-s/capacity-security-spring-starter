@@ -20,6 +20,13 @@
     <spring.boot.version>4.0.6</spring.boot.version>
 
   </properties>
+
+  <distributionManagement>
+    <repository>
+      <id>local-github-repo</id>
+      <url>file://${maven.multiModuleProjectDirectory}/maven-repo</url>
+    </repository>
+  </distributionManagement>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>

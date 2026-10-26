@@ -1,14 +1,26 @@
 package com.github.ndytar.capacity.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
+@Component
 @ConfigurationProperties(prefix = "capacity.jwt")
+
 public class CapacityJwtPropertie {
    private long duration=900000;
    private long refduration=604800000;
    private  String headername = "X-Capacity-Token";
    private String headerrefname = "X-CapacityRef-Token";
    private String keysecret;
+   private boolean refreche = true;
+
+    public boolean isRefreche() {
+        return refreche;
+    }
+
+    public void setRefreche(boolean refreche) {
+        this.refreche = refreche;
+    }
 
     public long getDuration() {
         return duration;

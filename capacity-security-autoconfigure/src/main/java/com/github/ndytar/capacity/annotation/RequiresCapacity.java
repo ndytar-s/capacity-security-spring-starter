@@ -9,6 +9,7 @@ import java.lang.annotation.Target;
     @Target({ElementType.METHOD, ElementType.TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     public @interface RequiresCapacity {
-        String[] actions() default {};
+        String actions() default "";
+        String resourcePattern() default "";
     }
 

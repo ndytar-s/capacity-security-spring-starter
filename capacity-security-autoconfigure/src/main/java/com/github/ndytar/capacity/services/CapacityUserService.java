@@ -1,6 +1,7 @@
 package com.github.ndytar.capacity.services;
 
-import  com.github.ndytar.capacity.capacityModel.CapacityUser;
+
+import com.github.ndytar.capacity.capacityModel.CapacityUser;
 
 import java.util.Optional;
 

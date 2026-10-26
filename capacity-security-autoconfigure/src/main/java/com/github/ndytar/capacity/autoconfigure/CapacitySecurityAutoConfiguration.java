@@ -1,21 +1,21 @@
 package com.github.ndytar.capacity.autoconfigure;
 import com.github.ndytar.capacity.aop.*;
+import com.github.ndytar.capacity.audit.AuditCollector;
 import com.github.ndytar.capacity.auth.CapacityAuthManager;
+import com.github.ndytar.capacity.auth.CapacityDecision;
 import com.github.ndytar.capacity.auth.Deduiction;
 import com.github.ndytar.capacity.auth.IpAuthorizationChecker;
 import com.github.ndytar.capacity.chaine.CapacityFilter;
-import com.github.ndytar.capacity.config.CapacityAuthenticationEntryPoint;
+import com.github.ndytar.capacity.customclaims.CustomClaimsService;
 import com.github.ndytar.capacity.exception.CapacityAccessDeniedHandler;
 import com.github.ndytar.capacity.jwt_macaroons.*;
 import com.github.ndytar.capacity.login.AuthService;
-import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
-import com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
-import com.github.ndytar.capacity.properties.CapacitySecurityAoautProperties;
-import com.github.ndytar.capacity.properties.CapacitySecurityPropertie;
+import com.github.ndytar.capacity.proof.CapacityResourcePolicyService;
+import com.github.ndytar.capacity.proof.dPop.DpopService;
+import com.github.ndytar.capacity.properties.*;
 import com.github.ndytar.capacity.services.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -29,6 +29,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
+import java.util.Optional;
+
 import static com.github.ndytar.capacity.config.CapacitySecurityConfigurer.capacitySecurity;
 
 @AutoConfiguration
@@ -37,44 +39,43 @@ import static com.github.ndytar.capacity.config.CapacitySecurityConfigurer.capac
         CapacityJwtPropertie.class,
         CapacityMacaoonPropertie.class,
         CapacitySecurityPropertie.class,
-        CapacitySecurityAoautProperties.class})
+        CapacitySecurityAoautProperties.class,
+        CapacityDpopPropertie.class})
 public class CapacitySecurityAutoConfiguration {
-@Bean
-@ConditionalOnMissingBean
-public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
-    return new CapacityAuthenticationEntryPoint();
-}
+
     @Bean
     @ConditionalOnMissingBean
     public CapacityFilter capacityFilter(
             AuthenticationEntryPoint authenticationEntryPoint,
             ExtractionToken extractionToken,
-            MacaroonService macaroonService, CapacityMacaoonPropertie macaoonPropertie,
-            SecurityAuditReporter auditReporter,
+            MacaroonService macaroonService,
+            CapacityMacaoonPropertie macaroonPropertie,
             RequestMappingHandlerMapping handlerMapping,
             CapacityJwtPropertie jwtPropertie,
-            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver,
-            JwtService jwtService
+            @Qualifier("handlerExceptionResolver")
+            HandlerExceptionResolver resolver,
+            JwtService jwtService,
+            CustomClaimsService customClaimes,
+            Deduiction deduiction,
+            DpopService dpopService,
+            CapacityDpopPropertie isDop
     ) {
 
         // filter.setHEADER(properties.getJwt().getHeaderName());
         return new CapacityFilter(
-                authenticationEntryPoint,
-                extractionToken,
-               macaroonService, macaoonPropertie,
-                 auditReporter,
-                handlerMapping,
-                 jwtPropertie,
-                resolver,
-                jwtService
+             authenticationEntryPoint,extractionToken,macaroonService,
+                macaroonPropertie,handlerMapping,jwtPropertie,resolver,
+                jwtService,customClaimes,deduiction,dpopService,isDop
         );
     }
 
     @Bean
     @ConditionalOnMissingBean
     public IAuthService authService(
-            CapacityUserService capacityUserService,
-            CapacityPolitiqueMappingService politiqueService,
+            DpopService dpopService,
+            Optional<CapacityUserService> capacityUserService,
+            Optional<CapacityPolitiqueMappingService> politiqueService,
+            AuditCollector auditCollector,
             JwtService jwtService,
             RefreshTokenService refreshTokenService,
             UuidService uuidService,
@@ -82,14 +83,17 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
             PasswordEncoder encoder,
             CapacityJwtPropertie jwtPropertie,
             CapacityMacaoonPropertie macaoonPropertie,
-            ExtractionToken extractionToken
+            ExtractionToken extractionToken,
+            CustomClaimsService customClaimes,
+            CapacityResourcePolicyService capacityResourcePolicyService,
+            CapacityJwtPropertie capacityJwtPropertie
+
     ) {
         return new AuthService(
-                 capacityUserService, politiqueService,
-                 jwtService, refreshTokenService,
-                uuidService, vulnerabilityReport,
-                encoder, jwtPropertie,
-                macaoonPropertie, extractionToken
+                dpopService, capacityUserService, politiqueService, auditCollector, jwtService,
+                 refreshTokenService, uuidService, vulnerabilityReport, encoder, jwtPropertie,
+                 macaoonPropertie, extractionToken, customClaimes, capacityResourcePolicyService,
+                capacityJwtPropertie
         );
     }
 
@@ -104,21 +108,23 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
 
     @Bean
     @ConditionalOnMissingBean
-    public MacaroonService macaroonService(CapacityMacaoonPropertie macaoonPropertie,
-                                           CapacityJwtPropertie jwtPropertie,
-                                           ExtractionToken extractionToken,
-                                           RevocationToken revocationToken,
-                                           RegistrationTokenService registrationToken) {
+    public MacaroonService macaroonService(
+            CapacityMacaoonPropertie macaoonPropertie,
+            CapacityJwtPropertie jwtPropertie,
+            ExtractionToken extractionToken, RevocationToken revocationToken,
+            RegistrationTokenService registrationToken, Deduiction deduiction
+    ) {
         return new MacaroonService(
-                 macaoonPropertie, jwtPropertie,
-                extractionToken, revocationToken, registrationToken
+                macaoonPropertie,
+               jwtPropertie,
+               extractionToken,  revocationToken,
+                 registrationToken,  deduiction
         );
     }
 
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(StringRedisTemplate.class)
     public RedisTokenStorage redisTokenStorage(  StringRedisTemplate redisTemplate,
                                                  RedisKeys redisKeys){
      return new RedisTokenStorage(redisTemplate,redisKeys);
@@ -134,11 +140,15 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
             CapacityJwtPropertie jwtPropertie,
             RevocationToken revocationToken,
             ExtractionToken extractionToken,
-            RegistrationToken registrationToken) {
+            RegistrationToken registrationToken,
+            AuditCollector auditCollector) {
         return new JwtService(
-               jwtPropertie,
-                revocationToken,
-                extractionToken, registrationToken);
+                jwtPropertie,
+                 revocationToken,
+                extractionToken,
+                 registrationToken,
+                 auditCollector
+        );
     }
     @Bean
     @ConditionalOnMissingBean
@@ -151,12 +161,6 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
         return new RefreshTokenService(jwtPropertie);
     }
 
-//    @Bean
-//    @ConditionalOnMissingBean
-//    @ConditionalOnBean(StringRedisTemplate.class)
-//    public TokenRedisService tokenRedisService(StringRedisTemplate redisTemplate, CapacityJwtPropertie jwtPropertie) {
-//        return new TokenRedisService(redisTemplate, jwtPropertie);
-//    }
     @Bean
     @ConditionalOnMissingBean
     public UuidService uuidService(RegistrationTokenService registrationToken){
@@ -182,11 +186,25 @@ public CapacityAuthenticationEntryPoint capacityAuthenticationEntryPoint() {
     public CapacityAuthManager capacityAuthManager(
             Deduiction deduiction,
             RequestMappingHandlerMapping handlerMapping,
-            IpAuthorizationChecker ipAuthorizationChecker) {
-        return new CapacityAuthManager(deduiction,handlerMapping,ipAuthorizationChecker);
+            IpAuthorizationChecker ipAuthorizationChecker,
+            AuditCollector auditCollector,
+            CapacityDecision capacityDecision
+    ) {
+        return new CapacityAuthManager(
+                deduiction, handlerMapping,
+                ipAuthorizationChecker, auditCollector, capacityDecision
+        );
     }
 
-
+    @Bean
+    @ConditionalOnMissingBean
+    public CapacityDecision capacityDecision(Deduiction deduiction,
+                                             MacaroonService macaroonService,
+                                             AuditCollector auditCollector){
+            return new CapacityDecision( deduiction,
+                     macaroonService,
+                     auditCollector);
+    }
     @Bean
     @ConditionalOnMissingBean(SecurityFilterChain.class)
     public SecurityFilterChain capacityFilterChain(

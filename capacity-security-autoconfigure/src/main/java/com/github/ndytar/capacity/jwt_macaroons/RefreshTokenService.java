@@ -1,10 +1,11 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-import  com.github.ndytar.capacity.properties.CapacityJwtPropertie;
+import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Base64;

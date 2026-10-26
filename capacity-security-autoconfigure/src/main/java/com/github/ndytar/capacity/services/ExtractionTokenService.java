@@ -9,7 +9,7 @@ public interface ExtractionTokenService {
 
     String extractJwtId(String jwt);
 
-    String extractDeviceId(String jwt);
+    String extractjkt(String jwt);
 
     String extractUuidMac(Macaroon macaroon);
 
@@ -17,5 +17,11 @@ public interface ExtractionTokenService {
 
     String extractMacaroonId(Macaroon macaroon);
 
+
+    String extractIdSubject(String jwt);
+    boolean perseneel(String jwt);
+
+    String extractIdSubjectInMac(Macaroon macaroon);
+    boolean persennelInMac(Macaroon macaroon);
 
 }

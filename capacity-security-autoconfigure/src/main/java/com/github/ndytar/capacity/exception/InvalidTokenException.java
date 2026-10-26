@@ -1,8 +1,9 @@
 package com.github.ndytar.capacity.exception;
 
+import lombok.Getter;
 import org.springframework.security.core.AuthenticationException;
 
-
+@Getter
 public class InvalidTokenException extends AuthenticationException {
 
     private final String errorCode;
@@ -12,7 +13,4 @@ public class InvalidTokenException extends AuthenticationException {
         this.errorCode = errorCode;
     }
 
-    public String getErrorCode() {
-        return errorCode;
-    }
 }

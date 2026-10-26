@@ -1,13 +1,14 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-import  com.github.ndytar.capacity.services.RegistrationTokenService;
-import  com.github.ndytar.capacity.services.TokenStorageService;
+
+import com.github.ndytar.capacity.services.RegistrationTokenService;
+import com.github.ndytar.capacity.services.TokenStorageService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 
 @Slf4j
-
 public class RegistrationToken implements RegistrationTokenService {
 
     private final TokenStorageService tokenStorageService;

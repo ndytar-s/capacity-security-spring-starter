@@ -1,43 +1,56 @@
 package com.github.ndytar.capacity.login;
 
-import  com.github.ndytar.capacity.aop.OauthUserInfo;
-import  com.github.ndytar.capacity.aop.SecurityVulnerabilityEvent;
-import  com.github.ndytar.capacity.aop.VulnerabilityType;
-import  com.github.ndytar.capacity.capacityModel.CapacityUser;
-import  com.github.ndytar.capacity.exception.ApiValidationException;
-import  com.github.ndytar.capacity.jwt_macaroons.*;
-import  com.github.ndytar.capacity.properties.CapacityJwtPropertie;
-import  com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
-import  com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
-import  com.github.ndytar.capacity.services.CapacityUserService;
-import  com.github.ndytar.capacity.services.IAuthService;
-import  com.github.ndytar.capacity.services.SucurityVulnerabilityReport;
+
+import com.github.ndytar.capacity.aop.OauthUserInfo;
+import com.github.ndytar.capacity.aop.SecurityVulnerabilityEvent;
+import com.github.ndytar.capacity.aop.VulnerabilityType;
+import com.github.ndytar.capacity.audit.AuditCollector;
+import com.github.ndytar.capacity.audit.AuditEvent;
+import com.github.ndytar.capacity.audit.AuditResult;
+import com.github.ndytar.capacity.capacityModel.CapacityUser;
+import com.github.ndytar.capacity.customclaims.CustomClaimsService;
+import com.github.ndytar.capacity.exception.ApiExceptions;
+import com.github.ndytar.capacity.exception.ApiValidationException;
+import com.github.ndytar.capacity.jwt_macaroons.*;
+import com.github.ndytar.capacity.proof.CapacityResourcePolicyService;
+import com.github.ndytar.capacity.proof.ProofRequest;
+import com.github.ndytar.capacity.proof.dPop.DpopService;
+import com.github.ndytar.capacity.properties.CapacityJwtPropertie;
+import com.github.ndytar.capacity.properties.CapacityMacaoonPropertie;
+import com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
+import com.github.ndytar.capacity.services.CapacityUserService;
+import com.github.ndytar.capacity.services.IAuthService;
+import com.github.ndytar.capacity.services.SucurityVulnerabilityReport;
 import io.jsonwebtoken.Claims;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 public class AuthService implements IAuthService {
     private static final Pattern HASH_PREFIX_PATTERN = Pattern.compile("^\\{.+\\}.*");
+    private final DpopService dpopService;
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
-
-    private CapacityUserService capacityUserService;
-    private CapacityPolitiqueMappingService politiqueService;
-    private JwtService jwtService;
-    private RefreshTokenService refreshTokenService;
-    private UuidService uuidService;
-    private CapacityJwtPropertie jwtPropertie;
-    private CapacityMacaoonPropertie macaoonPropertie;
-    private ExtractionToken  extractionToken;
+    private Optional<CapacityUserService> capacityUserService;
+    private Optional<CapacityPolitiqueMappingService> politiqueService;
+    private  final AuditCollector auditCollector;
+    private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
+    private final UuidService uuidService;
+    private final CapacityJwtPropertie jwtPropertie;
+    private final CapacityMacaoonPropertie macaoonPropertie;
+    private final ExtractionToken extractionToken;
+    private final CustomClaimsService customClaimes;
+    private final CapacityResourcePolicyService  capacityResourcePolicyService;
+    private final CapacityJwtPropertie capacityJwtPropertie;
+    private   Map<String, String> claimes ;
 
 
     private static final String PREFIX_JWT      = "jwt:";
@@ -46,15 +59,27 @@ public class AuthService implements IAuthService {
     PasswordEncoder encoder;
     SucurityVulnerabilityReport vulnerabilityReport;
 
-    public AuthService(CapacityUserService capacityUserService,
-                       CapacityPolitiqueMappingService politiqueService, JwtService jwtService,
-                       RefreshTokenService refreshTokenService, UuidService uuidService,
+    public AuthService(
+            DpopService dpopService,
+            Optional<CapacityUserService> capacityUserService,
+                       Optional<CapacityPolitiqueMappingService> politiqueService,
+            AuditCollector auditCollector,
+                       JwtService jwtService,
+                       RefreshTokenService refreshTokenService,
+                       UuidService uuidService,
                        SucurityVulnerabilityReport vulnerabilityReport,
                        PasswordEncoder encoder,
                        CapacityJwtPropertie jwtPropertie,
-                       CapacityMacaoonPropertie macaoonPropertie,ExtractionToken extractionToken) {
+                       CapacityMacaoonPropertie macaoonPropertie,
+                       ExtractionToken extractionToken,
+                       CustomClaimsService customClaimes,
+                       CapacityResourcePolicyService capacityResourcePolicyService,
+            CapacityJwtPropertie capacityJwtPropertie
+    ) {
+        this.dpopService = dpopService;
         this.capacityUserService = capacityUserService;
         this.politiqueService = politiqueService;
+        this.auditCollector = auditCollector;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.uuidService = uuidService;
@@ -63,99 +88,100 @@ public class AuthService implements IAuthService {
         this.jwtPropertie = jwtPropertie;
         this.macaoonPropertie = macaoonPropertie;
         this.extractionToken = extractionToken;
+
+        this.customClaimes = customClaimes;
+        this.capacityResourcePolicyService = capacityResourcePolicyService;
+        this.capacityJwtPropertie = capacityJwtPropertie;
     }
+
     // login
     @Override
-    public TokenResponse login(String username, String password, String deviceId) {
-        CapacityUser user = capacityUserService
-                .findByUsername(username)
+    public TokenResponse login(String username, String password, String publiKey) {
+        claimes = customClaimes.customClaims(null,null).claims();
+        CapacityUserService userService = capacityUserService.orElseThrow(() ->
+                new IllegalStateException("CapacityUserService non configuré : login classique indisponible."));
+        CapacityUser user = userService.findByUsername(username)
                 .orElseThrow(() -> {
                     vulnerabilityReport.report(
                             new SecurityVulnerabilityEvent(
                                     VulnerabilityType.NOTFUND,
                                     "Unknown user!!", username, getClass().getSimpleName())
                     );
-                    return new ApiValidationException(HttpStatus.NOT_FOUND,"Unknown user!");
+                    auditCollector.record(
+                            new AuditEvent(Instant.now(), "Athentication", "Login", username,
+                                    AuditResult.FAILURE,
+                                    "Failed unknown user"
+                            ));
+                    return new ApiValidationException(HttpStatus.NOT_FOUND,"Unknown user");
                 });
 
 
-       matches(password, user.getPassword());
-       return genererTokenResponse(user, deviceId);
+        matches(password, user.getPassword());
+        return genererTokenResponse(user, publiKey);
 
     }
 
-   //Cas auth par OAUTH
+    //Cas auth par OAUTH
     @Override
-    public TokenResponse oAuthlogin(String username, String deviceId) {
-
-        CapacityUser user = capacityUserService
-                .findByUsername(username)
+    public TokenResponse oAuthlogin(String username, String publicKey) {
+        claimes = customClaimes.customClaims(null, null).claims();
+        CapacityUserService userService = capacityUserService.orElseThrow(() ->
+                new IllegalStateException("CapacityUserService non configuré : login classique indisponible."));
+        CapacityUser user = userService.findByUsername(username)
                 .orElseThrow(() -> {
                     vulnerabilityReport.report(
                             new SecurityVulnerabilityEvent(
                                     VulnerabilityType.NOTFUND,
                                     "Unknown user.", username, getClass().getSimpleName())
                     );
-
+                    auditCollector.record(
+                            new AuditEvent(Instant.now(), "Athentication", "Oauthlogin", username,
+                                    AuditResult.FAILURE,
+                                    "Failed unknown user"
+                            ));
                     return new ApiValidationException(HttpStatus.NOT_FOUND,"Unknown user");
                 });
 
 
-        log.info("Connexion : {} sur appareil : {}", username, deviceId);
-        return genererTokenResponse(user, deviceId);
+        return genererTokenResponse(user, publicKey);
     }
     // refresh
     @Override
     public TokenResponse refresh(String refreshToken) {
+        claimes = customClaimes.customClaims(null, null).claims();
 
         String username = getName(refreshToken);
-        CapacityUser user = capacityUserService
-                .findByUsername(username)
+        CapacityUserService userService = capacityUserService.orElseThrow(() ->
+                new IllegalStateException("CapacityUserService non configuré : login classique indisponible."));
+        CapacityUser user = userService.findByUsername(username)
                 .orElseThrow(() ->
                         new RuntimeException("Unknown user"));
+        auditCollector.record(
+                new AuditEvent(Instant.now(), "Athentication", "Refresh token", username,
+                        AuditResult.FAILURE,
+                        "Failed unknown user"
+                ));
 
         return genererTokenResponse(user, "default");
     }
     /**
      *     génération tokens et stockage de redise
-      */
+     */
     @Override
-    public TokenResponse genererTokenResponse(CapacityUser user, String deviceId) {
+    public TokenResponse genererTokenResponse(CapacityUser user, String publickey) {
+        Map<String, Set<String>> politique = getPolitiqueFusionnee(user.getRoles());
 
-        Map<String, Set<String>> politique =
-                getPolitiqueFusionnee(user.getRoles());
-
-        Map<String, String> accessTokens = new HashMap<>();
-        AtomicReference<String> uuid = new AtomicReference<>("");
-
-            politique.forEach((scope, actions) -> {
-                if (macaoonPropertie.isRedis())
-                    uuid.set(uuidService.generer(deviceId, jwtPropertie.getDuration()));
-                String token = jwtService.generer(scope, actions, false, deviceId, uuid.get());
-                accessTokens.put(scope, token);
-            });
-
-
-        // refresh token
-        if (macaoonPropertie.isRedis())
-            uuid.set(uuidService.generer(deviceId, jwtPropertie.getRefduration()));
-        String refreshToken = refreshTokenService.generer(
-                user.getUsername(), uuid.get());
-
-        return new TokenResponse(
-                user.getUsername(),
-                user.getRoles().toString(),
-                accessTokens,
-                refreshToken
-        );
+        return genererDepuisPolitique(user.getId(), user.getUsername(), user.getRoles().toString(), politique, publickey);
     }
     // fusion des politiques
     private Map<String, Set<String>> getPolitiqueFusionnee(Set<String> roles) {
 
         Map<String, Set<String>> fusion = new HashMap<>();
+        CapacityPolitiqueMappingService service = politiqueService.orElseThrow(() ->
+                new IllegalStateException("CapacityUserService non configuré : login classique indisponible."));
 
         for (String role : roles) {
-            politiqueService.getPolitiqueForRole(role)
+            service.getPolitiqueForRole(role)
                     .forEach((scope, actions) ->
                             fusion.computeIfAbsent(scope, k -> new HashSet<>())
                                     .addAll(actions));
@@ -166,7 +192,7 @@ public class AuthService implements IAuthService {
 
     @Override
     public TokenResponse processExternalOauthVerification(OauthUserInfo userInfo) {
-            return oAuthlogin(userInfo.getEmail(), null);
+        return oAuthlogin(userInfo.getEmail(), null);
     }
 
     public void matches(String rawPassword, String storedPassword) {
@@ -199,13 +225,58 @@ public class AuthService implements IAuthService {
             );
             throw new ApiValidationException(HttpStatus.UNAUTHORIZED, "Incorrect password");
         }
-    }    private String getName(String refreshToken) {
+    }
+     private String getName(String refreshToken) {
         Claims claims = extractionToken.extractClaims(refreshToken);
         if (!"refresh".equals(claims.get("type"))) {
             return null;
         }
 
         return claims.getSubject();
+    }
+    public TokenResponse loginByProof(ProofRequest request, Object o) {
+
+       claimes = customClaimes.customClaims(request,o).claims();
+
+
+        Map<String, Set<String>> politique = capacityResourcePolicyService.getAuthorizedScopes(request);
+        String scope = politique.keySet().stream()
+                .findFirst()
+                .orElseThrow(() -> ApiExceptions.parametreInvalide("Incorrect policy mapping"));
+
+        return genererDepuisPolitique(null,"?","roof",  politique, scope);
+    }
+    private TokenResponse genererDepuisPolitique(Long id, String subjectId, String subjectLabel, Map<String, Set<String>> politique,
+                                                 String publicKey) {
+        Map<String, String> accessTokens = new HashMap<>();
+        AtomicReference<String> uuid = new AtomicReference<>("");
+
+        politique.forEach((scope, actions) -> {
+            if (macaoonPropertie.isRedis())
+                uuid.set(uuidService.generer(publicKey, jwtPropertie.getDuration()));
+            ScopeEmis scopeEmis = normaliser(scope);
+            String token = jwtService.generer(scopeEmis.scope(),scopeEmis.personnel(), id, actions, false, dpopService.buildCnf(publicKey), uuid.get(),claimes);
+            accessTokens.put(scope, token);
+        });
+
+        if (macaoonPropertie.isRedis())
+            uuid.set(uuidService.generer(publicKey, jwtPropertie.getRefduration()));
+        String refreshToken = null;
+        if (capacityJwtPropertie.isRefreche())
+            refreshToken = refreshTokenService.generer(subjectId, uuid.get());
+        return new TokenResponse(subjectId, subjectLabel, accessTokens, refreshToken);
+    }
+
+    private static final String MARQUEUR_SUJET = "{sub}";
+    private record ScopeEmis(String scope, boolean personnel) {}
+
+    private ScopeEmis normaliser(String scopeMapping) {
+        if (!scopeMapping.contains(MARQUEUR_SUJET)) return new ScopeEmis(scopeMapping, false);
+
+        String base = scopeMapping.replaceFirst("/\\{sub}(/\\*\\*)?$", "");
+        if (base.isEmpty() || base.equals(scopeMapping) || base.contains(MARQUEUR_SUJET))
+            throw ApiExceptions.parametreInvalide("Marqueur {sub} mal placé : " + scopeMapping);
+        return new ScopeEmis(base + "/**", true);
     }
 
 }

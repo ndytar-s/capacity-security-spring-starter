@@ -1,6 +1,7 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-import  com.github.ndytar.capacity.services.RegistrationTokenService;
+import com.github.ndytar.capacity.services.RegistrationTokenService;
+import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 

@@ -1,12 +1,12 @@
 package com.github.ndytar.capacity.aop;
 
 
-import  com.github.ndytar.capacity.annotation.CapacityOauth;
-import  com.github.ndytar.capacity.exception.RedisUnavailableException;
-import  com.github.ndytar.capacity.jwt_macaroons.TokenResponse;
-import  com.github.ndytar.capacity.login.AuthService;
-import  com.github.ndytar.capacity.properties.CapacitySecurityAoautProperties;
-import  com.github.ndytar.capacity.services.ExternalOauthVerifier;
+import com.github.ndytar.capacity.annotation.CapacityOauth;
+import com.github.ndytar.capacity.exception.RedisUnavailableException;
+import com.github.ndytar.capacity.jwt_macaroons.TokenResponse;
+import com.github.ndytar.capacity.login.AuthService;
+import com.github.ndytar.capacity.properties.CapacitySecurityAoautProperties;
+import com.github.ndytar.capacity.services.ExternalOauthVerifier;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -14,6 +14,7 @@ import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 

@@ -1,10 +1,12 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
-import  com.github.ndytar.capacity.exception.RedisUnavailableException;
-import  com.github.ndytar.capacity.services.TokenStorageService;
+
+import com.github.ndytar.capacity.exception.RedisUnavailableException;
+import com.github.ndytar.capacity.services.TokenStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Set;
@@ -18,9 +20,7 @@ public class RedisTokenStorage implements TokenStorageService {
     private final RedisKeys redisKeys;
 
 
-    public RedisTokenStorage(
-            StringRedisTemplate redisTemplate,
-            RedisKeys redisKeys) {
+    public RedisTokenStorage(StringRedisTemplate redisTemplate, RedisKeys redisKeys) {
         this.redisTemplate = redisTemplate;
         this.redisKeys = redisKeys;
     }

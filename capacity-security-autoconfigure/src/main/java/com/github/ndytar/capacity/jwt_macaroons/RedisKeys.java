@@ -1,5 +1,7 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
+import org.springframework.stereotype.Component;
+
 
 public final class RedisKeys {
 

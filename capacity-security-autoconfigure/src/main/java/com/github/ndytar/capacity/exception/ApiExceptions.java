@@ -1,6 +1,5 @@
-    package com.github.ndytar.capacity.jwt_macaroons;
+    package com.github.ndytar.capacity.exception;
 
-    import  com.github.ndytar.capacity.exception.ApiValidationException;
     import org.slf4j.Logger;
     import org.slf4j.LoggerFactory;
     import org.springframework.http.HttpStatus;
@@ -10,7 +9,7 @@
 
         public static ApiValidationException parametreInvalide(String message) {
             log.warn("Invalid parameter: {}", message);
-            return new ApiValidationException(HttpStatus.BAD_REQUEST, message);
+            return new  ApiValidationException(HttpStatus.BAD_REQUEST, message);
         }
 
         public static ApiValidationException jwtAbsent() {

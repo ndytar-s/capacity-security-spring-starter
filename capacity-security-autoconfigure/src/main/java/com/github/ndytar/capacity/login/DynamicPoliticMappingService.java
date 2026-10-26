@@ -1,11 +1,11 @@
 package com.github.ndytar.capacity.login;
 
-import  com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
-import  com.github.ndytar.capacity.services.MappingScopeActions;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+
+
+import com.github.ndytar.capacity.services.CapacityPolitiqueMappingService;
+import com.github.ndytar.capacity.services.MappingScopeActions;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -30,11 +30,11 @@ public class DynamicPoliticMappingService implements CapacityPolitiqueMappingSer
         return data.stream()
                 .collect(Collectors.toMap(
                         MappingScopeActions::getScopeName,
-                        MappingScopeActions::getActionsSet,
-                        (existing, replacement) -> {
-                            existing.addAll(replacement);
-                            return existing;
-                        }
+                        a -> a.getActionsSet() == null
+                                ? new HashSet<String>()
+                                : a.getActionsSet().stream().map(String::toUpperCase)
+                                .collect(Collectors.toCollection(HashSet::new)),
+                        (existing, replacement) -> { existing.addAll(replacement); return existing; }
                 ));
     }
 }

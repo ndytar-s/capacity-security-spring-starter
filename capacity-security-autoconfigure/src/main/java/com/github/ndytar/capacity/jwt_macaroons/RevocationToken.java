@@ -1,11 +1,14 @@
 package com.github.ndytar.capacity.jwt_macaroons;
 
 
-import  com.github.ndytar.capacity.services.RevocationTokenService;
-import  com.github.ndytar.capacity.services.TokenStorageService;
+
+import com.github.ndytar.capacity.services.RevocationTokenService;
+import com.github.ndytar.capacity.services.TokenStorageService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
+
 public class RevocationToken implements RevocationTokenService {
 
     private final TokenStorageService tokenStorage;
