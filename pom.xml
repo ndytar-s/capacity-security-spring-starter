@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.ndytar</groupId>
   <artifactId>capacity-security</artifactId>
-  <version>v1.0.4</version>
+  <version>v1.0.5</version>
   <name>Archetype - capacity-security</name>
   <url>http://maven.apache.org</url>
   <packaging>pom</packaging>
