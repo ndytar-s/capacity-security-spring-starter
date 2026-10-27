@@ -11,7 +11,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "capacity.security")
 public class CapacitySecurityPropertie {
 
-   private boolean logAudit;
+   private boolean logAudit=false;
     private List<IpAddressMatcher> allowedIps = List.of();
 
     // Le setter accepte la String (séparée par des virgules) et crée les Matchers

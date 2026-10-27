@@ -9,7 +9,6 @@ com.github.ndytar.capacity.config.CapacityProofConfiguration
 com.github.ndytar.capacity.config.CapacityProofValidationConfiguration
 com.github.ndytar.capacity.config.CapacityWebSecurityAutoConfiguration
 com.github.ndytar.capacity.config.DefaultCustomClaimsConfig
-com.github.ndytar.capacity.config.DefaultLogAuditSystem
 com.github.ndytar.capacity.config.DpopConfig
 com.github.ndytar.capacity.config.PasswordEncodConfig
 com.github.ndytar.capacity.config.WebMvcConfig
