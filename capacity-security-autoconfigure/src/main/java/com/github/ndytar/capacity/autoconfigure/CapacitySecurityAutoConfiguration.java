@@ -44,21 +44,25 @@ import static com.github.ndytar.capacity.config.CapacitySecurityConfigurer.capac
         CapacitySecurityAoautProperties.class,
         CapacityDpopPropertie.class})
 public class CapacitySecurityAutoConfiguration {
-    @AutoConfiguration(afterName = {
-            "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration",
-            "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
-    })
-    @ConditionalOnClass(name = "jakarta.persistence.MappedSuperclass")
-    public static class CapacityPoliticMappingAutoConfiguration {
-
-        @Bean
-        @ConditionalOnBean(PoliticMappingRepository.class)
-        @ConditionalOnMissingBean(PoliticMappingProvider.class)
-        PoliticMappingProvider jpaPoliticMappingProvider(
-                PoliticMappingRepository<? extends AbstractPoliticMapping> repo) {
-            return scope -> repo.findByScope(scope).map(m -> (MappingScopeActions) m);
-        }
-    }
+    /**
+     *
+     *Extrait dans config
+     */
+//    @AutoConfiguration(afterName = {
+//            "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration",
+//            "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
+//    })
+//    @ConditionalOnClass(name = "jakarta.persistence.MappedSuperclass")
+//    public static class CapacityPoliticMappingAutoConfiguration {
+//
+//        @Bean
+//        @ConditionalOnBean(PoliticMappingRepository.class)
+//        @ConditionalOnMissingBean(PoliticMappingProvider.class)
+//        PoliticMappingProvider jpaPoliticMappingProvider(
+//                PoliticMappingRepository<? extends AbstractPoliticMapping> repo) {
+//            return scope -> repo.findByScope(scope).map(m -> (MappingScopeActions) m);
+//        }
+//    }
 
     @Bean
     @ConditionalOnMissingBean

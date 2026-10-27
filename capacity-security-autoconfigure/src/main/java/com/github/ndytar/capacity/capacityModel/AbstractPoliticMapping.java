@@ -3,7 +3,7 @@ package com.github.ndytar.capacity.capacityModel;
 
 import com.github.ndytar.capacity.services.MappingScopeActions;
 import jakarta.persistence.*;
-import org.springframework.data.annotation.Id;
+import jakarta.persistence.Id;
 
 import java.util.HashSet;
 import java.util.Set;
