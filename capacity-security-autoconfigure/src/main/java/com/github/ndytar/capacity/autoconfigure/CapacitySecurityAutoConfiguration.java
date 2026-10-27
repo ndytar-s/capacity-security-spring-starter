@@ -7,14 +7,17 @@ import com.github.ndytar.capacity.auth.Deduiction;
 import com.github.ndytar.capacity.auth.IpAuthorizationChecker;
 import com.github.ndytar.capacity.capacityModel.AbstractPoliticMapping;
 import com.github.ndytar.capacity.chaine.CapacityFilter;
+import com.github.ndytar.capacity.customclaims.CustomClaims;
 import com.github.ndytar.capacity.customclaims.CustomClaimsService;
 import com.github.ndytar.capacity.exception.CapacityAccessDeniedHandler;
 import com.github.ndytar.capacity.jwt_macaroons.*;
 import com.github.ndytar.capacity.login.AuthService;
 import com.github.ndytar.capacity.proof.CapacityResourcePolicyService;
+import com.github.ndytar.capacity.proof.ProofRequest;
 import com.github.ndytar.capacity.proof.dPop.DpopService;
 import com.github.ndytar.capacity.properties.*;
 import com.github.ndytar.capacity.services.*;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -44,25 +47,7 @@ import static com.github.ndytar.capacity.config.CapacitySecurityConfigurer.capac
         CapacitySecurityAoautProperties.class,
         CapacityDpopPropertie.class})
 public class CapacitySecurityAutoConfiguration {
-    /**
-     *
-     *Extrait dans config
-     */
-//    @AutoConfiguration(afterName = {
-//            "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration",
-//            "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
-//    })
-//    @ConditionalOnClass(name = "jakarta.persistence.MappedSuperclass")
-//    public static class CapacityPoliticMappingAutoConfiguration {
-//
-//        @Bean
-//        @ConditionalOnBean(PoliticMappingRepository.class)
-//        @ConditionalOnMissingBean(PoliticMappingProvider.class)
-//        PoliticMappingProvider jpaPoliticMappingProvider(
-//                PoliticMappingRepository<? extends AbstractPoliticMapping> repo) {
-//            return scope -> repo.findByScope(scope).map(m -> (MappingScopeActions) m);
-//        }
-//    }
+
 
     @Bean
     @ConditionalOnMissingBean

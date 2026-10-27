@@ -15,7 +15,6 @@ import java.time.Duration;
 
 
 @AutoConfiguration
-@EnableConfigurationProperties(CapacityDpopPropertie.class)
 public class DpopConfig {
 
     @Bean

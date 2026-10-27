@@ -11,9 +11,10 @@ import java.util.Map;
 import java.util.Set;
 
 @Configuration
-@ConditionalOnMissingBean(CapacityResourcePolicyService.class)
+
 public class CapacityProofConfiguration {
     @Bean
+    @ConditionalOnMissingBean(CapacityResourcePolicyService.class)
     public CapacityResourcePolicyService capacityResourcePolicyService() {
 
         return new CapacityResourcePolicyService() {

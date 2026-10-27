@@ -11,10 +11,11 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 @AutoConfiguration
-@ConditionalOnMissingBean(CustomClaimsService.class)
+
 public class DefaultCustomClaimsConfig  {
 
     @Bean
+    @ConditionalOnMissingBean(CustomClaimsService.class)
     public CustomClaimsService customClaimsService() {
 
         return new CustomClaimsService() {

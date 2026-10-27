@@ -2,7 +2,6 @@ package com.github.ndytar.capacity.autoconfigure;
 
 import com.github.ndytar.capacity.agentic.*;
 import com.github.ndytar.capacity.auth.CapacityDecision;
-import com.github.ndytar.capacity.chaine.CapacityFilter;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -16,7 +15,7 @@ import java.util.Map;
 
 @AutoConfiguration
 @ConditionalOnClass()
-public class CapacityAgentAutoConfigure {
+public class CapacityAgentAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
