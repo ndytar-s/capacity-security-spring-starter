@@ -7,7 +7,9 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +25,8 @@ import java.util.Map;
  * Registre automatiquement le bean agrégé @Primary
  * à partir de tous les beans annotés @AgentToolsSource.
  */
-@AutoConfiguration
+@AutoConfiguration(afterName =
+        "org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration")
 @ConditionalOnClass(ToolCallback.class)
 public class AgentToolsAutoConfig {
 
@@ -45,8 +48,11 @@ public class AgentToolsAutoConfig {
     }
 
     @Bean
-    public ChatClient agentManager(ChatModel model, CapacityToolWrappingFactory factory) {
-        return ChatClient.builder(model)
+    @ConditionalOnBean(ChatClient.Builder.class)
+    @ConditionalOnMissingBean(ChatClient.class)
+    public ChatClient agentManager(ChatClient.Builder builder,
+                                   CapacityToolWrappingFactory factory) {
+        return builder
                 .defaultSystem(factory.composerSystemPrompt("""
                         Tu es un assistant.
                         Pour toute donnée selon la démande, utilise les outils disponibles.
