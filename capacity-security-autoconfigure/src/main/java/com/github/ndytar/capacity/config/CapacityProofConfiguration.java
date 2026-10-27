@@ -14,11 +14,11 @@ import java.util.Set;
 @AutoConfiguration
 public class CapacityProofConfiguration {
     @Bean
-    @ConditionalOnMissingBean(CapacityResourcePolicyService.class)
     public CapacityResourcePolicyService capacityResourcePolicyService() {
 
         return new CapacityResourcePolicyService() {
             @Override
+            @ConditionalOnMissingBean(CapacityResourcePolicyService.class)
             public Map<String, Set<String>> getAuthorizedScopes(ProofRequest request) {
                 return Map.of(request.resource(), Actions.get.actions());
             }
