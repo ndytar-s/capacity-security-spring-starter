@@ -58,11 +58,11 @@ public class CapacityAopAutoConfiguration {
     public SecurityAuditReporter securityAuditReporter(ApplicationEventPublisher publisher) {
         return new SpringSecurityAuditRepoerter(publisher);
     }
-//     @Bean
-//     @ConditionalOnMissingBean
-//     public CapacityWebSecurityAutoConfiguration capacityWebSecurityAutoConfiguration(){
-//            return new CapacityWebSecurityAutoConfiguration();
-//     }
+     @Bean
+     @ConditionalOnMissingBean
+     public CapacityWebSecurityAutoConfiguration capacityWebSecurityAutoConfiguration(){
+            return new CapacityWebSecurityAutoConfiguration();
+     }
     @Bean
     @ConditionalOnMissingBean(SucurityVulnerabilityReport.class)//possible personnaliser implementer soit meme
     public SucurityVulnerabilityReport sucurityVulnerabilityReport(ApplicationEventPublisher publisher) {
