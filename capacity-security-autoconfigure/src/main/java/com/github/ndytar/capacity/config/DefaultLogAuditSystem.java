@@ -11,7 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import java.util.List;
 
 @Slf4j
-@AutoConfiguration
+///@AutoConfiguration
 public class DefaultLogAuditSystem
         implements LogAuditSystem {
   private  final CapacitySecurityPropertie properties;
