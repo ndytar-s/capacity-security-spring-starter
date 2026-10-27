@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @AutoConfiguration
-@ConditionalOnClass()
+@ConditionalOnClass(ToolCallback.class)
 public class CapacityAgentAutoConfiguration {
 
     @Bean

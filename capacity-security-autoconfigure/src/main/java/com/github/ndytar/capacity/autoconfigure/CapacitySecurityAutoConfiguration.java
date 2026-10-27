@@ -48,7 +48,6 @@ import static com.github.ndytar.capacity.config.CapacitySecurityConfigurer.capac
         CapacityDpopPropertie.class})
 public class CapacitySecurityAutoConfiguration {
 
-
     @Bean
     @ConditionalOnMissingBean
     public CapacityFilter capacityFilter(
@@ -74,7 +73,6 @@ public class CapacitySecurityAutoConfiguration {
                 jwtService,customClaimes,deduiction,dpopService,isDop
         );
     }
-
     @Bean
     @ConditionalOnMissingBean
     public IAuthService authService(

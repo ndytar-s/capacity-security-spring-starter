@@ -79,7 +79,6 @@ Le starter est distribué via [JitPack](https://jitpack.io), construit automatiq
 </dependency>
 ```
 
-Remplacer `v1.0.0` par le tag Git souhaité. Consulter la page JitPack du dépôt pour vérifier l'état du build avant de figer une version en production.
 
 ---
 
